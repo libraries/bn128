@@ -38,6 +38,11 @@ int main() {
     return 1;
   }
 
+  // Assert -1 == FIELD_MODULUS - 1
+  if (fq_neg(1) != FIELD_MODULUS - 1) {
+    return 1;
+  }
+
   uint256 fq2_x[2] = {1, 0};
   uint256 fq2_f[2] = {1, 2};
   uint256 fq2_fpx[2] = {2, 2};
@@ -147,7 +152,7 @@ int main() {
   }
 
   // Assert Double(G1) == {0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3, 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4}
-  g1::doubl(G1, fq2_tmp[0]);
+  g1::doubl2(G1, fq2_tmp[0]);
   fq2_tmp[1][0] = intx::from_string<uint256>("0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3");
   fq2_tmp[1][1] = intx::from_string<uint256>("0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4");
   if (!eq2(fq2_tmp[0], fq2_tmp[1])) {
@@ -155,17 +160,17 @@ int main() {
   }
 
   // Assert add(add(double(G1), G1), G1) == double(double(G1))
-  g1::doubl(G1, fq2_tmp[1]);
+  g1::doubl2(G1, fq2_tmp[1]);
   g1::add(fq2_tmp[1], G1, fq2_tmp[0]);
   g1::add(fq2_tmp[0], G1, fq2_tmp[1]);
-  g1::doubl(G1, fq2_tmp[0]);
-  g1::doubl(fq2_tmp[0], fq2_tmp[2]);
+  g1::doubl2(G1, fq2_tmp[0]);
+  g1::doubl2(fq2_tmp[0], fq2_tmp[2]);
   if (fq2_tmp[1][0] != fq2_tmp[2][0] || fq2_tmp[1][1] != fq2_tmp[2][1]) {
       return 4;
   }
 
   // Assert double(G1) != G1
-  g1::doubl(G1, fq2_tmp[0]);
+  g1::doubl2(G1, fq2_tmp[0]);
   if (fq2_tmp[0][0] == G1[0] && fq2_tmp[0][1] == G1[1]) {
       return 4;
   }
