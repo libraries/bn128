@@ -3,15 +3,6 @@
 
 using namespace bn128;
 
-bool eq12(const uint256 x[12], const uint256 y[12]) {
-  for (int i = 0; i < 12; i++) {
-    if (x[i] != y[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
 int main() {
   // Assert FQ(2) + FQ(2) == FQ(4)
   if (fq_add(2, 2) != 4) {
@@ -201,13 +192,13 @@ int main() {
   g2::doubl2(G2, pt2_tmp[2]);
   g2::doubl2(pt2_tmp[2], pt2_tmp[1]);
   if (!(eq2(pt2_tmp[0][0], pt2_tmp[1][0]) && eq2(pt2_tmp[0][1], pt2_tmp[1][1]))) {
-    return 4;
+    return 5;
   }
 
   // Assert double(G2) != G2
   g2::doubl2(G2, pt2_tmp[0]);
   if (eq2(pt2_tmp[0][0], G2[0]) && eq2(pt2_tmp[0][1], G2[1])) {
-    return 4;
+    return 5;
   }
 
   // Assert add(mul(G2, 9), mul(G2, 5)) == add(mul(G2, 12), mul(G2, 2))
@@ -218,13 +209,13 @@ int main() {
   g2::mul(G2, 2, pt2_tmp[3]);
   g2::add(pt2_tmp[2], pt2_tmp[3], pt2_tmp[1]);
   if (!(eq2(pt2_tmp[0][0], pt2_tmp[1][0]) && eq2(pt2_tmp[0][1], pt2_tmp[1][1]))) {
-    return 4;
+    return 5;
   }
 
   // Assert mul(G2, CURVE_ORDER) == inf
   g2::mul(G2, CURVE_ORDER, pt2_tmp[0]);
   if (!g2::is_inf(pt2_tmp[0])) {
-    return 4;
+    return 5;
   }
 
   // Assert mul(G2, 2 * FIELD_MODULUS - CURVE_ORDER) != inf
@@ -234,13 +225,54 @@ int main() {
   pt2_tmp[0][1][0] = fq_mul(G2[1][0], fq2_tmp[0][0]);
   pt2_tmp[0][1][1] = fq_mul(G2[1][1], fq2_tmp[0][0]);
   if (g2::is_inf(pt2_tmp[0])) {
-    return 4;
+    return 5;
   }
 
   // Assert is_on_curve(mul(G2, 9))
   g2::mul(G2, 9, pt2_tmp[0]);
   if (!g2::is_on_curve(pt2_tmp[0])) {
-    return 4;
+    return 5;
+  }
+
+  uint256 ptc_tmp[8][2][12] = {};
+
+  // Assert add(add(double(G12), G12), G12) == double(double(G12))
+  g12::doubl2(G12, ptc_tmp[0]);
+  g12::add(ptc_tmp[0], G12, ptc_tmp[1]);
+  g12::add(ptc_tmp[1], G12, ptc_tmp[0]);
+  g12::doubl2(G12, ptc_tmp[2]);
+  g12::doubl2(ptc_tmp[2], ptc_tmp[1]);
+  if (!(eq12(ptc_tmp[0][0], ptc_tmp[1][0]) && eq12(ptc_tmp[0][1], ptc_tmp[1][1]))) {
+    return 6;
+  }
+
+  // Assert double(G12) != G12
+  g12::doubl2(G12, ptc_tmp[0]);
+  if (eq12(ptc_tmp[0][0], G12[0]) && eq12(ptc_tmp[0][1], G12[1])) {
+    return 6;
+  }
+
+  // Assert add(mul(G12, 9), mul(G12, 5)) == add(mul(G12, 12), mul(G12, 2))
+  g12::mul(G12, 9, ptc_tmp[2]);
+  g12::mul(G12, 5, ptc_tmp[3]);
+  g12::add(ptc_tmp[2], ptc_tmp[3], ptc_tmp[0]);
+  g12::mul(G12, 9, ptc_tmp[2]);
+  g12::mul(G12, 5, ptc_tmp[3]);
+  g12::add(ptc_tmp[2], ptc_tmp[3], ptc_tmp[1]);
+  if (!(eq12(ptc_tmp[0][0], ptc_tmp[1][0]) && eq12(ptc_tmp[0][1], ptc_tmp[1][1]))) {
+    return 6;
+  }
+
+  // Assert is_on_curve(mul(G12, 9))
+  g12::mul(G12, 9, ptc_tmp[0]);
+  if (!g12::is_on_curve(ptc_tmp[0])) {
+    return 6;
+  }
+
+  // Assert mul(G12, CURVE_ORDER) == inf
+  g12::mul(G12, CURVE_ORDER, ptc_tmp[0]);
+  if (!g12::is_inf(ptc_tmp[0])) {
+    return 6;
   }
 
   return 0;
