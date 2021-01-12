@@ -12,6 +12,21 @@ inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
 }
 
+inline bool eq12(const uint256 x[12], const uint256 y[12]) {
+    return x[0] == y[0] && \
+           x[1] == y[1] && \
+           x[2] == y[2] && \
+           x[3] == y[3] && \
+           x[4] == y[4] && \
+           x[5] == y[5] && \
+           x[6] == y[6] && \
+           x[7] == y[7] && \
+           x[8] == y[8] && \
+           x[9] == y[9] && \
+           x[10] == y[10] && \
+           x[11] == y[11];
+}
+
 // The prime modulus of the field.
 constexpr uint256 FIELD_MODULUS = intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
 
@@ -323,6 +338,10 @@ constexpr uint256 G2[2][2] = {
     intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b") ,
   }
 };
+constexpr uint256 G12[2][12] = {
+  {0, 0, intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0, 0, intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
+  {0, 0, 0, intx::from_string<uint256>("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0, 0, 0, intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
+};
 
 namespace g1 {
 
@@ -510,6 +529,128 @@ void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
     mul(t, n >> 1, r);
   } else {
     uint256 t[2][2][2];
+    doubl2(pt, t[0]);
+    mul(t[0], n >> 1, t[1]);
+    add(t[1], pt, r);
+  }
+}
+
+}
+
+namespace g12 {
+
+constexpr uint256 INF[2][12] = {{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+
+// Check if a point is the point at infinity
+inline bool is_inf(const uint256 pt[2][12]) {
+  return eq12(pt[0], INF[0]) && eq12(pt[1], INF[1]);
+}
+
+// // Check that a point is on the curve defined by y**2 == x**3 + b.
+bool is_on_curve(const uint256 pt[2][12]) {
+    if (is_inf(pt)) {
+      return true;
+    }
+    uint256 t[2][12];
+    fq12_mul(pt[1], pt[1], t[0]);
+    fq12_mul(pt[0], pt[0], t[1]);
+    fq12_mul(pt[0], t[1], t[1]);
+    fq12_add(t[1], B12, t[1]);
+    return eq12(t[0], t[1]);
+}
+
+void doubl2(const uint256 pt[2][12], uint256 r[2][12]) {
+  uint256 t[12];
+  uint256 newx[12];
+  uint256 newy[12];
+  uint256 l[12];
+
+  fq12_mul(pt[0], pt[0], l);
+  for (int i = 0; i < 12; i++) {
+    l[i] = fq_mul(3, l[i]);
+  }
+  for (int i = 0; i < 12; i++) {
+    t[i] = fq_mul(2, pt[1][i]);
+  }
+  fq12_div(l, t, l);
+
+  fq12_mul(l, l, newx);
+  for (int i = 0; i < 12; i++) {
+    t[i] = fq_mul(2, pt[0][i]);
+  }
+  fq12_sub(newx, t, newx);
+
+  fq12_mul(l, pt[0], t);
+  fq12_sub(t, pt[1], t);
+  fq12_neg(l, newy);
+  fq12_mul(newy, newx, newy);
+  fq12_add(newy, t, newy);
+
+  for (int i = 0; i < 12; i++) {
+    r[0][i] = newx[i];
+    r[1][i] = newy[i];
+  }
+}
+
+void add(const uint256 p1[2][12], const uint256 p2[2][12], uint256 r[2][12]) {
+  if (is_inf(p1)) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = p2[0][i];
+      r[1][i] = p2[1][i];
+    }
+  } else if (is_inf(p2)) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = p1[0][i];
+      r[1][i] = p1[1][i];
+    }
+  } else if (eq12(p2[0], p1[0]) && eq12(p2[1], p1[1])) {
+    doubl2(p1, r);
+  } else if (eq12(p2[0], p1[0])) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = INF[0][i];
+      r[1][i] = INF[1][i];
+    }
+  } else {
+    uint256 t[2][12];
+    uint256 l[12];
+    uint256 newx[12];
+    uint256 newy[12];
+    fq12_sub(p2[1], p1[1], t[0]);
+    fq12_sub(p2[0], p1[0], t[1]);
+    fq12_div(t[0], t[1], l);
+    fq12_mul(l, l, newx);
+    fq12_sub(newx, p1[0], newx);
+    fq12_sub(newx, p2[0], newx);
+    fq12_neg(l, newy);
+    fq12_mul(newy, newx, newy);
+    fq12_mul(l, p1[0], t[0]);
+    fq12_add(newy, t[0], newy);
+    fq12_sub(newy, p1[1], newy);
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = newx[i];
+      r[1][i] = newy[i];
+    }
+  }
+}
+
+// Elliptic curve point multiplication.
+void mul(const uint256 pt[2][12], const uint256 &n, uint256 r[2][12]) {
+  if (n == 0) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = INF[0][i];
+      r[1][i] = INF[1][i];
+    }
+  } else if (n == 1) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = pt[0][i];
+      r[1][i] = pt[1][i];
+    }
+  } else if (n % 2 == 0) {
+    uint256 t[2][12];
+    doubl2(pt, t);
+    mul(t, n >> 1, r);
+  } else {
+    uint256 t[2][2][12];
     doubl2(pt, t[0]);
     mul(t[0], n >> 1, t[1]);
     add(t[1], pt, r);
