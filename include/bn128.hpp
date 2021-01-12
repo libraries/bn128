@@ -65,29 +65,29 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
   }
 }
 
-uint256 fq_add(const uint256 &x, const uint256 &y) {
+inline uint256 fq_add(const uint256 &x, const uint256 &y) {
   return _addmod(x, y, FIELD_MODULUS);
 }
 
-uint256 fq_sub(const uint256 &x, const uint256 &y) {
+inline uint256 fq_sub(const uint256 &x, const uint256 &y) {
   return _submod(x, y, FIELD_MODULUS);
 }
 
-uint256 fq_neg(const uint256 &x) {
+inline uint256 fq_neg(const uint256 &x) {
   return _negmod(x, FIELD_MODULUS);
 }
 
-uint256 fq_mul(const uint256 &x, const uint256 &y) {
+inline uint256 fq_mul(const uint256 &x, const uint256 &y) {
   return _mulmod(x, y, FIELD_MODULUS);
 }
 
-uint256 fq_inv(const uint256 &x) { return _invmod(x, FIELD_MODULUS); }
+inline uint256 fq_inv(const uint256 &x) { return _invmod(x, FIELD_MODULUS); }
 
-uint256 fq_div(const uint256 &x, const uint256 &y) {
+inline uint256 fq_div(const uint256 &x, const uint256 &y) {
   return _divmod(x, y, FIELD_MODULUS);
 }
 
-uint256 fq_pow(const uint256 &x, const uint256 &y) {
+inline uint256 fq_pow(const uint256 &x, const uint256 &y) {
   return _powmod(x, y, FIELD_MODULUS);
 }
 
@@ -147,10 +147,10 @@ void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
     fq2_mul(x, x, t);
     fq2_pow(t, y >> 1, r);
   } else {
-    uint256 t[2];
-    fq2_mul(x, x, t);
-    fq2_pow(t, y >> 1, t);
-    fq2_mul(x, t, r);
+    uint256 t[2][2];
+    fq2_mul(x, x, t[0]);
+    fq2_pow(t[0], y >> 1, t[1]);
+    fq2_mul(x, t[1], r);
   }
 }
 
@@ -326,16 +326,14 @@ constexpr uint256 G2[2][2] = {
 
 namespace g1 {
 
-constexpr uint256 INF[2] = {
-  intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-  intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-};
+constexpr uint256 INF[2] = {-1, -1};
 
-bool is_inf(const uint256 pt[2]) {
+// Check if a point is the point at infinity
+inline bool is_inf(const uint256 pt[2]) {
   return eq2(pt, INF);
 }
 
-// Check that a point is on the curve defined by y**2 == x**3 + b.
+// Check that a point is on the curve defined by y**2 == x**3 + b
 bool is_on_curve(const uint256 pt[2]) {
     if (is_inf(pt)) {
       return true;
@@ -345,7 +343,7 @@ bool is_on_curve(const uint256 pt[2]) {
     return l == r;
 }
 
-void doubl(const uint256 pt[2], uint256 r[2]) {
+void doubl2(const uint256 pt[2], uint256 r[2]) {
   uint256 x = pt[0];
   uint256 y = pt[1];
   uint256 l = fq_div(fq_mul(fq_mul(x, x), 3), fq_mul(y, 2));
@@ -360,28 +358,18 @@ void add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   if (is_inf(p1)) {
     r[0] = p2[0];
     r[1] = p2[1];
-    return;
-  }
-  if (is_inf(p2)) {
+  } else if (is_inf(p2)) {
     r[0] = p1[0];
     r[1] = p1[1];
-    return;
-  }
-  uint256 x1 = p1[0];
-  uint256 y1 = p1[1];
-  uint256 x2 = p2[0];
-  uint256 y2 = p2[1];
-  if (x2 == x1 && y2 == y1) {
-    doubl(p1, r);
-    return;
-  } else if (x2 == x1) {
+  } else if (eq1(p2[0], p1[0]) && eq1(p2[1], p1[1])) {
+    doubl2(p1, r);
+  } else if (eq1(p2[0], p1[0])) {
     r[0] = INF[0];
     r[1] = INF[1];
-    return;
   } else {
-    uint256 l = fq_div(fq_sub(y2, y1), fq_sub(x2, x1));
-    uint256 newx = fq_sub(fq_sub(fq_mul(l, l), x1), x2);
-    uint256 newy = fq_sub(fq_add(fq_mul(fq_neg(l), newx),  fq_mul(l, x1)), y1);
+    uint256 l = fq_div(fq_sub(p2[1], p1[1]), fq_sub(p2[0], p1[0]));
+    uint256 newx = fq_sub(fq_sub(fq_mul(l, l), p1[0]), p2[0]);
+    uint256 newy = fq_sub(fq_add(fq_mul(fq_neg(l), newx),  fq_mul(l, p1[0])), p1[1]);
     r[0] = newx;
     r[1] = newy;
     return;
@@ -398,12 +386,12 @@ void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
     r[1] = pt[1];
   } else if (n % 2 == 0) {
     uint256 t[2];
-    doubl(pt, t);
+    doubl2(pt, t);
     mul(t, n >> 1, r);
   } else {
     uint256 t1[2];
     uint256 t2[2];
-    doubl(pt, t1);
+    doubl2(pt, t1);
     mul(t1, n >> 1, t2);
     add(t2, pt, r);
   }
@@ -413,19 +401,11 @@ void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
 
 namespace g2 {
 
-constexpr uint256 INF[2][2] = {
-  {
-    intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-    intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-  },
-  {
-    intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-    intx::from_string<uint256>("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") ,
-  }
-};
+constexpr uint256 INF[2][2] = {{-1, -1}, {-1, -1}};
 
-bool is_inf(const uint256 pt[2][2]) {
-  return pt[0][0] == INF[0][0] && pt[0][1] == INF[0][1] && pt[1][0] == INF[1][0] && pt[1][1] == INF[1][1];
+// Check if a point is the point at infinity
+inline bool is_inf(const uint256 pt[2][2]) {
+  return eq2(pt[0], INF[0]) && eq2(pt[1], INF[1]);
 }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
@@ -433,32 +413,31 @@ bool is_on_curve(const uint256 pt[2][2]) {
     if (is_inf(pt)) {
       return true;
     }
-    uint256 t1[2];
-    uint256 t2[2];
-    fq2_mul(pt[0], pt[0], t2);
-    fq2_mul(pt[0], t2, t1);
-    fq2_add(t1, B2, t2);
-    fq2_mul(pt[1], pt[1], t1);
-    return eq2(t1, t2);
+    uint256 t[2][2];
+    fq2_mul(pt[1], pt[1], t[0]);
+    fq2_mul(pt[0], pt[0], t[1]);
+    fq2_mul(pt[0], t[1], t[1]);
+    fq2_add(t[1], B2, t[1]);
+    return eq2(t[0], t[1]);
 }
 
-void doubl(const uint256 pt[2][2], uint256 r[2][2]) {
+void doubl2(const uint256 pt[2][2], uint256 r[2][2]) {
   uint256 t[2];
   uint256 newx[2];
   uint256 newy[2];
   uint256 l[2];
 
-  uint256 u3[2] = {3, 3};
-  uint256 u2[2] = {2, 2};
+  fq2_mul(pt[0], pt[0], l);
+  l[0] = fq_mul(3, l[0]);
+  l[1] = fq_mul(3, l[1]);
+  t[0] = fq_mul(2, pt[1][0]);
+  t[1] = fq_mul(2, pt[1][1]);
+  fq2_div(l, t, l);
 
-  fq2_mul(pt[0], pt[0], t);
-  fq2_mul(u3, t, t);
-  fq2_mul(u2, pt[1], l);
-  fq2_div(t, l, l);
-
-  fq2_mul(l, l, t);
-  fq2_mul(u2, pt[0], newx);
-  fq2_sub(t, newx, newx);
+  fq2_mul(l, l, newx);
+  t[0] = fq_mul(2, pt[0][0]);
+  t[1] = fq_mul(2, pt[0][1]);
+  fq2_sub(newx, t, newx);
 
   fq2_mul(l, pt[0], t);
   fq2_sub(t, pt[1], t);
@@ -470,6 +449,71 @@ void doubl(const uint256 pt[2][2], uint256 r[2][2]) {
   r[0][1] = newx[1];
   r[1][0] = newy[0];
   r[1][1] = newy[1];
+}
+
+void add(const uint256 p1[2][2], const uint256 p2[2][2], uint256 r[2][2]) {
+  if (is_inf(p1)) {
+    r[0][0] = p2[0][0];
+    r[0][1] = p2[0][1];
+    r[1][0] = p2[1][0];
+    r[1][1] = p2[1][1];
+  } else if (is_inf(p2)) {
+    r[0][0] = p1[0][0];
+    r[0][1] = p1[0][1];
+    r[1][0] = p1[1][0];
+    r[1][1] = p1[1][1];
+  } else if (eq2(p2[0], p1[0]) && eq2(p2[1], p1[1])) {
+    doubl2(p1, r);
+  } else if (eq2(p2[0], p1[0])) {
+    r[0][0] = INF[0][0];
+    r[0][1] = INF[0][1];
+    r[1][0] = INF[1][0];
+    r[1][1] = INF[1][1];
+  } else {
+    uint256 t[2];
+    uint256 l[2];
+    uint256 newx[2];
+    uint256 newy[2];
+    fq2_sub(p2[1], p1[1], l);
+    fq2_sub(p2[0], p1[0], t);
+    fq2_div(l, t, l);
+    fq2_mul(l, l, newx);
+    fq2_sub(newx, p1[0], newx);
+    fq2_sub(newx, p2[0], newx);
+    fq2_neg(l, newy);
+    fq2_mul(newy, newx, newy);
+    fq2_mul(l, p1[0], t);
+    fq2_add(newy, t, newy);
+    fq2_sub(newy, p1[1], newy);
+    r[0][0] = newx[0];
+    r[0][1] = newx[1];
+    r[1][0] = newy[0];
+    r[1][1] = newy[1];
+  }
+}
+
+// Elliptic curve point multiplication.
+void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
+  if (n == 0) {
+    r[0][0] = INF[0][0];
+    r[0][1] = INF[0][1];
+    r[1][0] = INF[1][0];
+    r[1][1] = INF[1][1];
+  } else if (n == 1) {
+    r[0][0] = pt[0][0];
+    r[0][1] = pt[0][1];
+    r[1][0] = pt[1][0];
+    r[1][1] = pt[1][1];
+  } else if (n % 2 == 0) {
+    uint256 t[2][2];
+    doubl2(pt, t);
+    mul(t, n >> 1, r);
+  } else {
+    uint256 t[2][2][2];
+    doubl2(pt, t[0]);
+    mul(t[0], n >> 1, t[1]);
+    add(t[1], pt, r);
+  }
 }
 
 }
