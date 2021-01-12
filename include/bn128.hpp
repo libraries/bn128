@@ -493,34 +493,27 @@ void add(const uint256 p1[2][2], const uint256 p2[2][2], uint256 r[2][2]) {
 }
 
 // Elliptic curve point multiplication.
-void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
-  // if (n == 0) {
-  //   r[0] = INF[0];
-  //   r[1] = INF[1];
-  // } else if (n == 1) {
-  //   r[0] = pt[0];
-  //   r[1] = pt[1];
-  // } else if (n % 2 == 0) {
-  //   uint256 t[2];
-  //   doubl2(pt, t);
-  //   mul(t, n >> 1, r);
-  // } else {
-  //   uint256 t1[2];
-  //   uint256 t2[2];
-  //   doubl2(pt, t1);
-  //   mul(t1, n >> 1, t2);
-  //   add(t2, pt, r);
-  // }
-
-
-  // if n == 0:
-  //       return None
-  //   elif n == 1:
-  //       return pt
-  //   elif not n % 2:
-  //       return multiply(double(pt), n // 2)
-  //   else:
-  //       return add(multiply(double(pt), int(n // 2)), pt)
+void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
+  if (n == 0) {
+    r[0][0] = INF[0][0];
+    r[0][1] = INF[0][1];
+    r[1][0] = INF[1][0];
+    r[1][1] = INF[1][1];
+  } else if (n == 1) {
+    r[0][0] = pt[0][0];
+    r[0][1] = pt[0][1];
+    r[1][0] = pt[1][0];
+    r[1][1] = pt[1][1];
+  } else if (n % 2 == 0) {
+    uint256 t[2][2];
+    doubl2(pt, t);
+    mul(t, n >> 1, r);
+  } else {
+    uint256 t[2][2][2];
+    doubl2(pt, t[0]);
+    mul(t[0], n >> 1, t[1]);
+    add(t[1], pt, r);
+  }
 }
 
 }
