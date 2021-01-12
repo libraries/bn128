@@ -151,7 +151,7 @@ int main() {
     return 4;
   }
 
-  // Assert Double(G1) == {0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3, 0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4}
+  // Assert Double(G1) != ?
   g1::doubl2(G1, fq2_tmp[0]);
   fq2_tmp[1][0] = intx::from_string<uint256>("0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3");
   fq2_tmp[1][1] = intx::from_string<uint256>("0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4");
@@ -191,6 +191,32 @@ int main() {
   if (!eq2(fq2_tmp[0], g1::INF)) {
       return 4;
   }
+
+  uint256 pt2_tmp[8][2][2] = {};
+
+  // Assert add(add(double(G2), G2), G2) == double(double(G2))
+  g2::doubl2(G2, pt2_tmp[0]);
+  g2::add(pt2_tmp[0], G2, pt2_tmp[1]);
+  g2::add(pt2_tmp[1], G2, pt2_tmp[0]);
+  g2::doubl2(G2, pt2_tmp[2]);
+  g2::doubl2(pt2_tmp[2], pt2_tmp[1]);
+  if (!(eq2(pt2_tmp[0][0], pt2_tmp[1][0]) && eq2(pt2_tmp[0][1], pt2_tmp[1][1]))) {
+    return 4;
+  }
+
+  // Assert double(G2) != G2
+  g2::doubl2(G2, pt2_tmp[0]);
+  if (eq2(pt2_tmp[0][0], G2[0]) && eq2(pt2_tmp[0][1], G2[1])) {
+    return 4;
+  }
+
+  // Assert add(mul(G2, 9), mul(G2, 5)) == add(mul(G2, 12), mul(G2, 2))
+
+  // Assert is_inf(mul(G2, CURVE_ORDER))
+
+  // Assert not is_inf(mul(G2, 2 * FIELD_MODULUS - CURVE_ORDER))
+
+  // Assert is_on_curve(mul(G2, 9), b2)
 
   return 0;
 }
