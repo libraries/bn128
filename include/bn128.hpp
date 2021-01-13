@@ -4,27 +4,16 @@ namespace bn128 {
 
 using uint256 = intx::uint256;
 
-inline bool eq1(const uint256 &x, const uint256 &y) {
-  return x == y;
-}
+inline bool eq1(const uint256 &x, const uint256 &y) { return x == y; }
 
 inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
 }
 
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
-    return x[0] == y[0] && \
-           x[1] == y[1] && \
-           x[2] == y[2] && \
-           x[3] == y[3] && \
-           x[4] == y[4] && \
-           x[5] == y[5] && \
-           x[6] == y[6] && \
-           x[7] == y[7] && \
-           x[8] == y[8] && \
-           x[9] == y[9] && \
-           x[10] == y[10] && \
-           x[11] == y[11];
+  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
+         x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
+         x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
 }
 
 // The prime modulus of the field.
@@ -88,9 +77,7 @@ inline uint256 fq_sub(const uint256 &x, const uint256 &y) {
   return _submod(x, y, FIELD_MODULUS);
 }
 
-inline uint256 fq_neg(const uint256 &x) {
-  return _negmod(x, FIELD_MODULUS);
-}
+inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
 inline uint256 fq_mul(const uint256 &x, const uint256 &y) {
   return _mulmod(x, y, FIELD_MODULUS);
@@ -172,7 +159,8 @@ void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
 // The 12th-degree extension field.
 
 // The modulus of the polynomial in this representation of FQ12.
-constexpr uint256 FQ12_MODULUS_COEFFS[12] = {82, 0, 0, 0, 0, 0, FIELD_MODULUS - 18, 0, 0, 0, 0, 0};
+constexpr uint256 FQ12_MODULUS_COEFFS[12] = {
+    82, 0, 0, 0, 0, 0, FIELD_MODULUS - 18, 0, 0, 0, 0, 0};
 
 void fq12_add(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
   for (int i = 0; i < 12; i++) {
@@ -204,8 +192,8 @@ void fq12_mul(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
   while (lenb > degree) {
     int exp = lenb - degree - 1;
     uint256 top = b[lenb - 1];
-    lenb-=1;
-    for (int i =0; i < degree; i++) {
+    lenb -= 1;
+    for (int i = 0; i < degree; i++) {
       b[exp + i] = fq_sub(b[exp + i], fq_mul(top, FQ12_MODULUS_COEFFS[i]));
     }
   }
@@ -216,26 +204,27 @@ void fq12_mul(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
 
 // Utility methods for polynomial math.
 int _deg(const uint256 p[13]) {
-    int d = 12;
-    while (p[d] == 0 && d != 0) {
-      d--;
-    }
-    return d;
+  int d = 12;
+  while (p[d] == 0 && d != 0) {
+    d--;
+  }
+  return d;
 }
 
-void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) {
+void _poly_rounded_div(const uint256 a[13], const uint256 b[13],
+                       uint256 r[13]) {
   int dega = _deg(a);
   int degb = _deg(b);
   uint256 temp[13] = {};
   for (int i = 0; i < 13; i++) {
     temp[i] = a[i];
   }
-  uint256 o[13] = { 0 };
+  uint256 o[13] = {0};
   for (int i = dega - degb; i > -1; i--) {
-     o[i] = fq_add(o[i], fq_div(temp[degb + i], b[degb]));
-     for (int c = 0; c < degb + 1; c++) {
-       temp[c + i] = fq_sub(temp[c + i], o[c]);
-     }
+    o[i] = fq_add(o[i], fq_div(temp[degb + i], b[degb]));
+    for (int c = 0; c < degb + 1; c++) {
+      temp[c + i] = fq_sub(temp[c + i], o[c]);
+    }
   }
   int n = _deg(o) + 1;
   for (int i = 0; i < n; i++) {
@@ -245,15 +234,15 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) 
 
 void fq12_inv(const uint256 x[12], uint256 r[12]) {
   const int degree = 12;
-  uint256 lm[degree + 1] = { lm[0]=1, 0 };
-  uint256 hm[degree + 1] = { 0 };
+  uint256 lm[degree + 1] = {lm[0] = 1, 0};
+  uint256 hm[degree + 1] = {0};
   uint256 low[degree + 1] = {};
-  for (int i = 0; i < degree ; i++) {
+  for (int i = 0; i < degree; i++) {
     low[i] = x[i];
   }
   low[degree] = 0;
   uint256 high[degree + 1] = {};
-  for (int i = 0; i < degree ; i++) {
+  for (int i = 0; i < degree; i++) {
     high[i] = FQ12_MODULUS_COEFFS[i];
   }
   high[degree] = 1;
@@ -262,7 +251,7 @@ void fq12_inv(const uint256 x[12], uint256 r[12]) {
   uint256 nm[degree + 1] = {};
   uint256 news[degree + 1] = {};
   while (_deg(low) != 0) {
-    for (int i = 0; i < degree + 1; i ++) {
+    for (int i = 0; i < degree + 1; i++) {
       temp[i] = 0;
       nm[i] = hm[i];
       news[i] = high[i];
@@ -292,7 +281,7 @@ void fq12_div(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
   fq12_mul(x, temp, r);
 }
 
-void fq12_pow(const uint256 x[12], const uint256& y, uint256 r[12]) {
+void fq12_pow(const uint256 x[12], const uint256 &y, uint256 r[12]) {
   if (y == 0) {
     r[0] = 1;
     for (int i = 1; i < 12; i++) {
@@ -319,8 +308,8 @@ constexpr uint256 CURVE_ORDER = intx::from_string<uint256>("0x30644e72e131a029b8
 constexpr uint256 B = 3;
 // Twisted curve over FQ**2
 constexpr uint256 B2[2] = {
-  intx::from_string<uint256>("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
-  intx::from_string<uint256>("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
+    intx::from_string<uint256>("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
+    intx::from_string<uint256>("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
 };
 // Extension curve over FQ**12; same b value as over FQ
 constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -329,18 +318,25 @@ constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 constexpr uint256 G1[2] = {1, 2};
 // Generator for twisted curve over FQ2
 constexpr uint256 G2[2][2] = {
-  {
-    intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"),
-    intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"),
-  },
-  {
-    intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
-    intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b") ,
-  }
-};
+    {
+        intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"),
+        intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"),
+    },
+    {
+        intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
+        intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"),
+    }};
 constexpr uint256 G12[2][12] = {
-  {0, 0, intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0, 0, intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
-  {0, 0, 0, intx::from_string<uint256>("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0, 0, 0, intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
+    {0, 0,
+     intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"),
+     0, 0, 0, 0, 0,
+     intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"),
+     0, 0, 0},
+    {0, 0, 0,
+     intx::from_string<uint256>("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"),
+     0, 0, 0, 0, 0,
+     intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"),
+     0, 0},
 };
 
 namespace g1 {
@@ -348,18 +344,16 @@ namespace g1 {
 constexpr uint256 INF[2] = {-1, -1};
 
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[2]) {
-  return eq2(pt, INF);
-}
+inline bool is_inf(const uint256 pt[2]) { return eq2(pt, INF); }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b
 bool is_on_curve(const uint256 pt[2]) {
-    if (is_inf(pt)) {
-      return true;
-    }
-    uint256 l = fq_mul(pt[1], pt[1]);
-    uint256 r = fq_add(fq_mul(fq_mul(pt[0], pt[0]), pt[0]), B);
-    return l == r;
+  if (is_inf(pt)) {
+    return true;
+  }
+  uint256 l = fq_mul(pt[1], pt[1]);
+  uint256 r = fq_add(fq_mul(fq_mul(pt[0], pt[0]), pt[0]), B);
+  return l == r;
 }
 
 void doubl2(const uint256 pt[2], uint256 r[2]) {
@@ -367,7 +361,8 @@ void doubl2(const uint256 pt[2], uint256 r[2]) {
   uint256 y = pt[1];
   uint256 l = fq_div(fq_mul(fq_mul(x, x), 3), fq_mul(y, 2));
   uint256 newx = fq_sub(fq_mul(l, l), fq_mul(x, 2));
-  uint256 newy = fq_sub(fq_add(fq_mul(fq_sub(FIELD_MODULUS, l), newx), fq_mul(l , x)), y);
+  uint256 newy =
+      fq_sub(fq_add(fq_mul(fq_sub(FIELD_MODULUS, l), newx), fq_mul(l, x)), y);
   r[0] = newx;
   r[1] = newy;
 }
@@ -388,7 +383,8 @@ void add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   } else {
     uint256 l = fq_div(fq_sub(p2[1], p1[1]), fq_sub(p2[0], p1[0]));
     uint256 newx = fq_sub(fq_sub(fq_mul(l, l), p1[0]), p2[0]);
-    uint256 newy = fq_sub(fq_add(fq_mul(fq_neg(l), newx),  fq_mul(l, p1[0])), p1[1]);
+    uint256 newy =
+        fq_sub(fq_add(fq_mul(fq_neg(l), newx), fq_mul(l, p1[0])), p1[1]);
     r[0] = newx;
     r[1] = newy;
     return;
@@ -416,7 +412,7 @@ void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
   }
 }
 
-}
+} // namespace g1
 
 namespace g2 {
 
@@ -429,15 +425,15 @@ inline bool is_inf(const uint256 pt[2][2]) {
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[2][2]) {
-    if (is_inf(pt)) {
-      return true;
-    }
-    uint256 t[2][2];
-    fq2_mul(pt[1], pt[1], t[0]);
-    fq2_mul(pt[0], pt[0], t[1]);
-    fq2_mul(pt[0], t[1], t[1]);
-    fq2_add(t[1], B2, t[1]);
-    return eq2(t[0], t[1]);
+  if (is_inf(pt)) {
+    return true;
+  }
+  uint256 t[2][2];
+  fq2_mul(pt[1], pt[1], t[0]);
+  fq2_mul(pt[0], pt[0], t[1]);
+  fq2_mul(pt[0], t[1], t[1]);
+  fq2_add(t[1], B2, t[1]);
+  return eq2(t[0], t[1]);
 }
 
 void doubl2(const uint256 pt[2][2], uint256 r[2][2]) {
@@ -535,11 +531,13 @@ void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
   }
 }
 
-}
+} // namespace g2
 
 namespace g12 {
 
-constexpr uint256 INF[2][12] = {{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+constexpr uint256 INF[2][12] = {
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
 
 // Check if a point is the point at infinity
 inline bool is_inf(const uint256 pt[2][12]) {
@@ -548,15 +546,15 @@ inline bool is_inf(const uint256 pt[2][12]) {
 
 // // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[2][12]) {
-    if (is_inf(pt)) {
-      return true;
-    }
-    uint256 t[2][12];
-    fq12_mul(pt[1], pt[1], t[0]);
-    fq12_mul(pt[0], pt[0], t[1]);
-    fq12_mul(pt[0], t[1], t[1]);
-    fq12_add(t[1], B12, t[1]);
-    return eq12(t[0], t[1]);
+  if (is_inf(pt)) {
+    return true;
+  }
+  uint256 t[2][12];
+  fq12_mul(pt[1], pt[1], t[0]);
+  fq12_mul(pt[0], pt[0], t[1]);
+  fq12_mul(pt[0], t[1], t[1]);
+  fq12_add(t[1], B12, t[1]);
+  return eq12(t[0], t[1]);
 }
 
 void doubl2(const uint256 pt[2][12], uint256 r[2][12]) {
@@ -657,6 +655,6 @@ void mul(const uint256 pt[2][12], const uint256 &n, uint256 r[2][12]) {
   }
 }
 
-}
+} // namespace g12
 
-}
+} // namespace bn128
