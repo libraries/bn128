@@ -257,6 +257,57 @@ int test_g2() {
   return 0;
 }
 
+int test_g12() {
+  uint256 tmp[4][2][12] = {};
+
+  // Assert twist(G2) == G12;
+  g2::twist(G2, tmp[0]);
+  if (!(eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1]))) {
+    return 1;
+  }
+
+  // Assert add(add(double(G12), G12), G12) == double(double(G12))
+  g12::doubl2(G12, tmp[0]);
+  g12::add(tmp[0], G12, tmp[1]);
+  g12::add(tmp[1], G12, tmp[0]);
+  g12::doubl2(G12, tmp[2]);
+  g12::doubl2(tmp[2], tmp[1]);
+  if (!(eq12(tmp[0][0], tmp[1][0]) && eq12(tmp[0][1], tmp[1][1]))) {
+    return 1;
+  }
+
+  // Assert double(G12) != G12
+  g12::doubl2(G12, tmp[0]);
+  if (eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1])) {
+    return 1;
+  }
+
+  // Assert add(mul(G12, 9), mul(G12, 5)) == add(mul(G12, 12), mul(G12, 2))
+  g12::mul(G12, 9, tmp[2]);
+  g12::mul(G12, 5, tmp[3]);
+  g12::add(tmp[2], tmp[3], tmp[0]);
+  g12::mul(G12, 9, tmp[2]);
+  g12::mul(G12, 5, tmp[3]);
+  g12::add(tmp[2], tmp[3], tmp[1]);
+  if (!(eq12(tmp[0][0], tmp[1][0]) && eq12(tmp[0][1], tmp[1][1]))) {
+    return 1;
+  }
+
+  // Assert is_on_curve(mul(G12, 9))
+  g12::mul(G12, 9, tmp[0]);
+  if (!g12::is_on_curve(tmp[0])) {
+    return 1;
+  }
+
+  // Assert mul(G12, CURVE_ORDER) == inf
+  g12::mul(G12, CURVE_ORDER, tmp[0]);
+  if (!g12::is_inf(tmp[0])) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int test_linefunc() {
   uint256 one[2] = {};
   uint256 two[2] = {};
@@ -325,6 +376,113 @@ int test_linefunc() {
   return 0;
 }
 
+int test_pairing() {
+  uint256 p1[12] = {};
+  uint256 pn1[12] = {};
+  uint256 tmp[12] = {};
+  uint256 neg_g1[2] = {G1[0], fq_neg(G1[1])};
+
+  // p1 = pairing(G2, G1)
+  // pn1 = pairing(G2, neg(G1))
+  // assert p1 * pn1 == FQ12.one()
+  pairing(G2, G1, p1);
+  cp12(p1, tmp);
+  pairing(G2, neg_g1, pn1);
+  fq12_mul(p1, pn1, tmp);
+  if (!eq12(tmp, FQ12_ONE)) {
+    return 1;
+  }
+
+  // np1 = pairing(neg(G2), G1)
+  // assert p1 * np1 == FQ12.one()
+  // assert pn1 == np1
+  uint256 neg_g2[2][2] = {};
+  uint256 np1[12] = {};
+  cp2(G2[0], neg_g2[0]);
+  fq2_neg(G2[1], neg_g2[1]);
+  pairing(neg_g2, G1, np1);
+  fq12_mul(p1, np1, tmp);
+  if (!eq12(tmp, FQ12_ONE)) {
+    return 1;
+  }
+  if (!eq12(pn1, np1)) {
+    return 1;
+  }
+
+  // assert p1 ** curve_order == FQ12.one()
+  fq12_pow(p1, CURVE_ORDER, tmp);
+  if (!eq12(tmp, FQ12_ONE)) {
+    return 1;
+  }
+
+  uint256 g1_mul_2[2] = {};
+  uint256 p2[12] = {};
+  g1::mul(G1, 2, g1_mul_2);
+  pairing(G2, g1_mul_2, p2);
+  fq12_mul(p1, p1, tmp);
+  if (!eq12(tmp, p2)) {
+    return 1;
+  }
+
+  // # assert p1 != p2 and p1 != np1 and p2 != np1
+  if ((eq12(p1, p2) || eq12(p1, np1) || eq12(p2, np1))) {
+    return 1;
+  }
+
+  uint256 g2_mul_2[2][2] = {};
+  uint256 po2[12] = {};
+  g2::mul(G2, 2, g2_mul_2);
+  pairing(g2_mul_2, G1, po2);
+  fq12_mul(p1, p1, tmp);
+  if (!eq12(tmp, po2)) {
+    return 1;
+  }
+
+  uint256 g2_mul_27[2][2] = {};
+  uint256 g1_mul_31[2] = {};
+  uint256 p3[12] = {};
+  g2::mul(G2, 27, g2_mul_27);
+  g1::mul(G1, 31, g1_mul_31);
+  pairing(g2_mul_27, g1_mul_31, p3);
+  uint256 g1_mul_999[2] = {};
+  uint256 po3[12] = {};
+  g1::mul(G1, 999, g1_mul_999);
+  pairing(G2, g1_mul_999, po3);
+  if (!eq12(p3, po3)) {
+    return 1;
+  }
+
+  return 0;
+}
+
+int test_misc() {
+  uint256 tmp[3][2][2] = {};
+  // Taking from
+  // https://github.com/xxuejie/benchmarking-wasm-ewasm-evm/blob/checkpoint/evmrace/ckbvm/bn256g2_test.cpp
+  tmp[0][0][0] = intx::from_string<uint256>(
+      "0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
+  tmp[0][0][1] = intx::from_string<uint256>(
+      "0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
+  tmp[0][1][0] = intx::from_string<uint256>(
+      "0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
+  tmp[0][1][1] = intx::from_string<uint256>(
+      "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
+  g2::mul(tmp[0], 0x2dddefa19, tmp[2]);
+  tmp[1][0][0] = intx::from_string<uint256>(
+      "0x23997083c2c4409869ee3546806a544c8c16bc46cc88598c4e1c853eb81d45b0");
+  tmp[1][0][1] = intx::from_string<uint256>(
+      "0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
+  tmp[1][1][0] = intx::from_string<uint256>(
+      "0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
+  tmp[1][1][1] = intx::from_string<uint256>(
+      "0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
+  if (!(eq2(tmp[1][0], tmp[2][0]) && eq2(tmp[1][1], tmp[2][1]))) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int main() {
   if (test_fq())
     return 1;
@@ -336,85 +494,14 @@ int main() {
     return 1;
   if (test_g2())
     return 1;
-
-  uint256 fq2_tmp[8][2] = {};
-  uint256 pt2_tmp[4][2][2] = {};
-  uint256 ptc_tmp[4][2][12] = {};
-
-  // Assert twist(G2) == G12;
-  g2::twist(G2, ptc_tmp[0]);
-  if (!(eq12(ptc_tmp[0][0], G12[0]) && eq12(ptc_tmp[0][1], G12[1]))) {
+  if (test_g12())
     return 1;
-  }
-
-  // Assert add(add(double(G12), G12), G12) == double(double(G12))
-  g12::doubl2(G12, ptc_tmp[0]);
-  g12::add(ptc_tmp[0], G12, ptc_tmp[1]);
-  g12::add(ptc_tmp[1], G12, ptc_tmp[0]);
-  g12::doubl2(G12, ptc_tmp[2]);
-  g12::doubl2(ptc_tmp[2], ptc_tmp[1]);
-  if (!(eq12(ptc_tmp[0][0], ptc_tmp[1][0]) &&
-        eq12(ptc_tmp[0][1], ptc_tmp[1][1]))) {
+  if (test_linefunc())
     return 1;
-  }
-
-  // Assert double(G12) != G12
-  g12::doubl2(G12, ptc_tmp[0]);
-  if (eq12(ptc_tmp[0][0], G12[0]) && eq12(ptc_tmp[0][1], G12[1])) {
+  if (test_pairing())
     return 1;
-  }
-
-  // Assert add(mul(G12, 9), mul(G12, 5)) == add(mul(G12, 12), mul(G12, 2))
-  g12::mul(G12, 9, ptc_tmp[2]);
-  g12::mul(G12, 5, ptc_tmp[3]);
-  g12::add(ptc_tmp[2], ptc_tmp[3], ptc_tmp[0]);
-  g12::mul(G12, 9, ptc_tmp[2]);
-  g12::mul(G12, 5, ptc_tmp[3]);
-  g12::add(ptc_tmp[2], ptc_tmp[3], ptc_tmp[1]);
-  if (!(eq12(ptc_tmp[0][0], ptc_tmp[1][0]) &&
-        eq12(ptc_tmp[0][1], ptc_tmp[1][1]))) {
+  if (test_misc())
     return 1;
-  }
-
-  // Assert is_on_curve(mul(G12, 9))
-  g12::mul(G12, 9, ptc_tmp[0]);
-  if (!g12::is_on_curve(ptc_tmp[0])) {
-    return 1;
-  }
-
-  // Assert mul(G12, CURVE_ORDER) == inf
-  g12::mul(G12, CURVE_ORDER, ptc_tmp[0]);
-  if (!g12::is_inf(ptc_tmp[0])) {
-    return 1;
-  }
-
-  // Taking from
-  // https://github.com/xxuejie/benchmarking-wasm-ewasm-evm/blob/checkpoint/evmrace/ckbvm/bn256g2_test.cpp
-  pt2_tmp[0][0][0] = intx::from_string<uint256>(
-      "0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
-  pt2_tmp[0][0][1] = intx::from_string<uint256>(
-      "0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
-  pt2_tmp[0][1][0] = intx::from_string<uint256>(
-      "0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
-  pt2_tmp[0][1][1] = intx::from_string<uint256>(
-      "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
-  g2::mul(pt2_tmp[0], 0x2dddefa19, pt2_tmp[1]);
-  pt2_tmp[2][0][0] = intx::from_string<uint256>(
-      "0x23997083c2c4409869ee3546806a544c8c16bc46cc88598c4e1c853eb81d45b0");
-  pt2_tmp[2][0][1] = intx::from_string<uint256>(
-      "0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
-  pt2_tmp[2][1][0] = intx::from_string<uint256>(
-      "0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
-  pt2_tmp[2][1][1] = intx::from_string<uint256>(
-      "0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
-  if (!(eq2(pt2_tmp[1][0], pt2_tmp[2][0]) &&
-        eq2(pt2_tmp[1][1], pt2_tmp[2][1]))) {
-    return 1;
-  }
-
-  if (test_linefunc() != 0) {
-    return 1;
-  }
 
   return 0;
 }

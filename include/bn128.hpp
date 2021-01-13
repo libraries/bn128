@@ -1,13 +1,27 @@
+#ifndef BN128_H_
+#define BN128_H_
+
 #include <intx/intx.hpp>
 
 namespace bn128 {
 
+// Maybe there is a better way to implement this macro, but this is enough for now.
+#ifdef __riscv
+#undef assert
+#define assert(x) if (x) exit(1)
+#endif
+
 using uint256 = intx::uint256;
 
-inline bool eq1(const uint256 &x, const uint256 &y) { return x == y; }
 
 inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
+}
+
+inline bool eq12(const uint256 x[12], const uint256 y[12]) {
+  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
+         x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
+         x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
 }
 
 inline void cp2(const uint256 x[2], uint256 r[2]) {
@@ -15,10 +29,19 @@ inline void cp2(const uint256 x[2], uint256 r[2]) {
   r[1] = x[1];
 }
 
-inline bool eq12(const uint256 x[12], const uint256 y[12]) {
-  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
-         x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
-         x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
+inline void cp12(const uint256 x[12], uint256 r[12]) {
+  r[0] = x[0];
+  r[1] = x[1];
+  r[2] = x[2];
+  r[3] = x[3];
+  r[4] = x[4];
+  r[5] = x[5];
+  r[6] = x[6];
+  r[7] = x[7];
+  r[8] = x[8];
+  r[9] = x[9];
+  r[10] = x[10];
+  r[11] = x[11];
 }
 
 // The prime modulus of the field.
@@ -99,6 +122,8 @@ inline uint256 fq_pow(const uint256 &x, const uint256 &y) {
 }
 
 // The quadratic extension field.
+constexpr uint256 FQ2_ONE[2] = {1, 0};
+constexpr uint256 FQ2_ZERO[2] = {0, 0};
 
 void fq2_add(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   uint256 a = fq_add(x[0], y[0]);
@@ -162,6 +187,8 @@ void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
 }
 
 // The 12th-degree extension field.
+constexpr uint256 FQ12_ONE[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+constexpr uint256 FQ12_ZERO[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // The modulus of the polynomial in this representation of FQ12.
 constexpr uint256 FQ12_MODULUS_COEFFS[12] = {
@@ -384,9 +411,9 @@ void add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   } else if (is_inf(p2)) {
     r[0] = p1[0];
     r[1] = p1[1];
-  } else if (eq1(p2[0], p1[0]) && eq1(p2[1], p1[1])) {
+  } else if (p2[0] == p1[0] && p2[1] == p1[1]) {
     doubl2(p1, r);
-  } else if (eq1(p2[0], p1[0])) {
+  } else if (p2[0] == p1[0]) {
     r[0] = INF[0];
     r[1] = INF[1];
   } else {
@@ -699,9 +726,7 @@ constexpr int LOG_ATE_LOOP_COUNT = 63;
 // Create a function representing the line between P1 and P2, and evaluate it at T
 uint256 linefunc(const uint256 p1[2], const uint256 p2[2], const uint256 pt[2]) {
   // No points-at-infinity allowed, sorry
-  if (g1::is_inf(p1) || g1::is_inf(p2) || g1::is_inf(pt)) {
-    // What should we did here?
-  }
+  assert(!(g1::is_inf(p1) || g1::is_inf(p2) || g1::is_inf(pt)));
   uint256 x1 = p1[0], y1 = p1[1];
   uint256 x2 = p2[0], y2 = p2[1];
   uint256 xt = pt[0], yt = pt[1];
@@ -716,18 +741,181 @@ uint256 linefunc(const uint256 p1[2], const uint256 p2[2], const uint256 pt[2]) 
   }
 }
 
-// def linefunc(P1, P2, T):
-//     assert P1 and P2 and T # No points-at-infinity allowed, sorry
-//     x1, y1 = P1
-//     x2, y2 = P2
-//     xt, yt = T
-//     if x1 != x2:
-//         m = (y2 - y1) / (x2 - x1)
-//         return m * (xt - x1) - (yt - y1)
-//     elif y1 == y2:
-//         m = 3 * x1**2 / (2 * y1)
-//         return m * (xt - x1) - (yt - y1)
-//     else:
-//         return xt - x1
+// Create a function representing the line between P1 and P2, and evaluate it at T
+void linefunc12(const uint256 p1[2][12], const uint256 p2[2][12], const uint256 pt[2][12], uint256 r[12]) {
+  // No points-at-infinity allowed, sorry
+  assert(!(g12::is_inf(p1) || g12::is_inf(p2) || g12::is_inf(pt)));
+  uint256 tmp[3][12] = {};
+  if (!eq12(p1[0], p2[0])) {
+    fq12_sub(p2[1], p1[1], tmp[0]);
+    fq12_sub(p2[0], p1[0], tmp[1]);
+    fq12_div(tmp[0], tmp[1], tmp[2]);
+    fq12_sub(pt[0], p1[0], tmp[1]);
+    fq12_mul(tmp[2], tmp[1], tmp[0]);
+    fq12_sub(pt[1], p1[1], tmp[1]);
+    fq12_sub(tmp[0], tmp[1], r);
+  } else if (eq12(p1[1], p2[1])) {
+    fq12_mul(p1[0], p1[0], tmp[0]);
+    for (int i = 0; i < 12; i++) {
+      tmp[0][i] = fq_mul(3, tmp[0][i]);
+    }
+    for (int i = 0; i < 12; i++) {
+      tmp[1][i] = fq_mul(2, p1[1][i]);
+    }
+    fq12_div(tmp[0], tmp[1], tmp[2]);
+    fq12_sub(pt[0], p1[0], tmp[1]);
+    fq12_mul(tmp[2], tmp[1], tmp[0]);
+    fq12_sub(pt[1], p1[1], tmp[1]);
+    fq12_sub(tmp[0], tmp[1], r);
+  } else {
+    fq12_sub(pt[0], p1[0], r);
+  }
+
+  //   assert P1 and P2 and T # No points-at-infinity allowed, sorry
+  //   x1, y1 = P1
+  //   x2, y2 = P2
+  //   xt, yt = T
+  //   if x1 != x2:
+  //       m = (y2 - y1) / (x2 - x1)
+  //       return m * (xt - x1) - (yt - y1)
+  //   elif y1 == y2:
+  //       m = 3 * x1**2 / (2 * y1)
+  //       return m * (xt - x1) - (yt - y1)
+  //   else:
+  //       return xt - x1
+}
+
+void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 r[12]) {
+  if (y == 0) {
+    r[0] = 1;
+    for (int i = 1; i < 12; i++) {
+      r[i] = 0;
+    }
+  } else if (y == 1) {
+    for (int i = 0; i < 12; i++) {
+      r[i] = x[i];
+    }
+  } else if (y % 2 == 0) {
+    uint256 t[12];
+    fq12_mul(x, x, t);
+    final_exponentiate(t, y >> 1, r);
+  } else {
+    uint256 t[12];
+    fq12_mul(x, x, t);
+    final_exponentiate(t, y >> 1, r);
+    fq12_mul(x, r, r);
+  }
+}
+
+// Main miller loop
+void miller_loop(const uint256 q[2][12], const uint256 p[2][12], uint256 r[12]) {
+  if (g12::is_inf(q) || g12::is_inf(p)) {
+    cp12(FQ12_ONE, r);
+    return;
+  }
+  uint256 t[2][12] = {};
+  uint256 R[2][12] = {};
+  cp12(q[0], R[0]);
+  cp12(q[1], R[1]);
+  uint256 f[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  for (int i = 63; i > -1; i--) {
+    linefunc12(R, R, p, t[0]);
+    fq12_mul(t[0], f, t[1]);
+    fq12_mul(t[1], f, t[0]);
+    cp12(t[0], f);
+    g12::doubl2(R, t);
+    cp12(t[0], R[0]);
+    cp12(t[1], R[1]);
+    if ((ATE_LOOP_COUNT & fq_pow(2, i)) != 0) {
+      linefunc12(R, q, p, t[0]);
+      fq12_mul(t[0], f, t[1]);
+      cp12(t[1], f);
+      g12::add(R, q, t);
+      cp12(t[0], R[0]);
+      cp12(t[1], R[1]);
+    }
+  }
+  g12::mul(q, ATE_LOOP_COUNT, t);
+  assert(eq12(R[0], t[0]) && eq12(R[1], t[1]));
+
+  uint256 Q1[2][12] = {};
+  fq12_pow(q[0], FIELD_MODULUS, Q1[0]);
+  fq12_pow(q[1], FIELD_MODULUS, Q1[1]);
+  assert(g12::is_on_curve(Q1));
+  uint256 nQ2[2][12] = {};
+  fq12_pow(Q1[0], FIELD_MODULUS, nQ2[0]);
+  fq12_neg(Q1[1], t[0]);
+  fq12_pow(t[0], FIELD_MODULUS, nQ2[1]);
+  assert(g12::is_on_curve(nQ2));
+
+  linefunc12(R, Q1, p, t[0]);
+  fq12_mul(f, t[0], t[1]);
+  cp12(t[1], f);
+  g12::add(R, Q1, t);
+  cp12(t[0], R[0]);
+  cp12(t[1], R[1]);
+  linefunc12(R, nQ2, p, t[0]);
+  fq12_mul(f, t[0], t[1]);
+  cp12(t[1], f);
+
+  // printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", static_cast<int>(f[0] % 256), static_cast<int>(f[1] % 256), static_cast<int>(f[2] % 256), static_cast<int>(f[3] % 256), static_cast<int>(f[4] % 256), static_cast<int>(f[5] % 256), static_cast<int>(f[6] % 256), static_cast<int>(f[7] % 256), static_cast<int>(f[8] % 256), static_cast<int>(f[9] % 256), static_cast<int>(f[10] % 256), static_cast<int>(f[11] % 256));
+
+  intx::uint<4096> n = (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} - 1) / intx::uint<4096>{CURVE_ORDER};
+  final_exponentiate(f, n, r);
+
+  // fq12_pow(f, intx::from_string<uint256>("0xb3c4d79d41a917593a97459a6afe5ea2b687f7e0078302b6"), r);
+
+  // Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus)
+  // # assert is_on_curve(Q1, b12)
+  // nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus)
+  // # assert is_on_curve(nQ2, b12)
+  // f = f * linefunc(R, Q1, P)
+  // R = add(R, Q1)
+  // f = f * linefunc(R, nQ2, P)
+  // # R = add(R, nQ2) This line is in many specifications but it technically does nothing
+  // return f ** ((field_modulus ** 12 - 1) // curve_order)
+
+}
+
+// # Main miller loop
+// def miller_loop(Q, P):
+//     if Q is None or P is None:
+//         return FQ12.one()
+//     R = Q
+//     f = FQ12.one()
+//     for i in range(log_ate_loop_count, -1, -1):
+//         f = f * f * linefunc(R, R, P)
+//         R = double(R)
+//         if ate_loop_count & (2**i):
+//             f = f * linefunc(R, Q, P)
+//             R = add(R, Q)
+//     # assert R == multiply(Q, ate_loop_count)
+//     Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus)
+//     # assert is_on_curve(Q1, b12)
+//     nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus)
+//     # assert is_on_curve(nQ2, b12)
+//     f = f * linefunc(R, Q1, P)
+//     R = add(R, Q1)
+//     f = f * linefunc(R, nQ2, P)
+//     # R = add(R, nQ2) This line is in many specifications but it technically does nothing
+//     return f ** ((field_modulus ** 12 - 1) // curve_order)
+
+// Pairing computation
+void pairing(const uint256 q[2][2], const uint256 p[2], uint256 r[12]) {
+  assert(g2::is_on_curve(q));
+  assert(g1::is_on_curve(p));
+  uint256 twist_q[2][12];
+  g2::twist(q, twist_q);
+  uint256 fq12_p[2][12] = {{p[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {p[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
+  miller_loop(twist_q, fq12_p, r);
+}
+
+
+// def pairing(Q, P):
+//     assert is_on_curve(Q, b2)
+//     assert is_on_curve(P, b)
+//     return miller_loop(twist(Q), cast_point_to_fq12(P))
 
 } // namespace bn128
+
+#endif /* BN128_H_ */
