@@ -197,6 +197,66 @@ int test_g1() {
   return 0;
 }
 
+int test_g2() {
+  uint256 tmp[4][2][2] = {};
+
+  // Assert G2 is on curve
+  if (!g2::is_on_curve(G2)) {
+    return 1;
+  }
+
+  // Assert add(add(double(G2), G2), G2) == double(double(G2))
+  g2::doubl2(G2, tmp[0]);
+  g2::add(tmp[0], G2, tmp[1]);
+  g2::add(tmp[1], G2, tmp[0]);
+  g2::doubl2(G2, tmp[2]);
+  g2::doubl2(tmp[2], tmp[1]);
+  if (!(eq2(tmp[0][0], tmp[1][0]) && eq2(tmp[0][1], tmp[1][1]))) {
+    return 1;
+  }
+
+  // Assert double(G2) != G2
+  g2::doubl2(G2, tmp[0]);
+  if (eq2(tmp[0][0], G2[0]) && eq2(tmp[0][1], G2[1])) {
+    return 1;
+  }
+
+  // Assert add(mul(G2, 9), mul(G2, 5)) == add(mul(G2, 12), mul(G2, 2))
+  g2::mul(G2, 9, tmp[2]);
+  g2::mul(G2, 5, tmp[3]);
+  g2::add(tmp[2], tmp[3], tmp[0]);
+  g2::mul(G2, 12, tmp[2]);
+  g2::mul(G2, 2, tmp[3]);
+  g2::add(tmp[2], tmp[3], tmp[1]);
+  if (!(eq2(tmp[0][0], tmp[1][0]) && eq2(tmp[0][1], tmp[1][1]))) {
+    return 1;
+  }
+
+  // Assert mul(G2, CURVE_ORDER) == inf
+  g2::mul(G2, CURVE_ORDER, tmp[0]);
+  if (!g2::is_inf(tmp[0])) {
+    return 1;
+  }
+
+  // Assert mul(G2, 2 * FIELD_MODULUS - CURVE_ORDER) != inf
+  uint256 n = fq_sub(fq_mul(2, FIELD_MODULUS), CURVE_ORDER);
+  tmp[0][0][0] = fq_mul(G2[0][0], n);
+  tmp[0][0][1] = fq_mul(G2[0][1], n);
+  tmp[0][1][0] = fq_mul(G2[1][0], n);
+  tmp[0][1][1] = fq_mul(G2[1][1], n);
+  if (g2::is_inf(tmp[0])) {
+    return 1;
+  }
+
+  // Assert is_on_curve(mul(G2, 9))
+  g2::mul(G2, 9, tmp[0]);
+  if (!g2::is_on_curve(tmp[0])) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int test_linefunc() {
   uint256 one[2] = {};
   uint256 two[2] = {};
@@ -274,68 +334,12 @@ int main() {
     return 1;
   if (test_g1())
     return 1;
+  if (test_g2())
+    return 1;
 
   uint256 fq2_tmp[8][2] = {};
-
-  // Assert G2 is on curve
-  if (!g2::is_on_curve(G2)) {
-    return 1;
-  }
-
-  uint256 pt2_tmp[8][2][2] = {};
-
-  // Assert add(add(double(G2), G2), G2) == double(double(G2))
-  g2::doubl2(G2, pt2_tmp[0]);
-  g2::add(pt2_tmp[0], G2, pt2_tmp[1]);
-  g2::add(pt2_tmp[1], G2, pt2_tmp[0]);
-  g2::doubl2(G2, pt2_tmp[2]);
-  g2::doubl2(pt2_tmp[2], pt2_tmp[1]);
-  if (!(eq2(pt2_tmp[0][0], pt2_tmp[1][0]) &&
-        eq2(pt2_tmp[0][1], pt2_tmp[1][1]))) {
-    return 1;
-  }
-
-  // Assert double(G2) != G2
-  g2::doubl2(G2, pt2_tmp[0]);
-  if (eq2(pt2_tmp[0][0], G2[0]) && eq2(pt2_tmp[0][1], G2[1])) {
-    return 1;
-  }
-
-  // Assert add(mul(G2, 9), mul(G2, 5)) == add(mul(G2, 12), mul(G2, 2))
-  g2::mul(G2, 9, pt2_tmp[2]);
-  g2::mul(G2, 5, pt2_tmp[3]);
-  g2::add(pt2_tmp[2], pt2_tmp[3], pt2_tmp[0]);
-  g2::mul(G2, 12, pt2_tmp[2]);
-  g2::mul(G2, 2, pt2_tmp[3]);
-  g2::add(pt2_tmp[2], pt2_tmp[3], pt2_tmp[1]);
-  if (!(eq2(pt2_tmp[0][0], pt2_tmp[1][0]) &&
-        eq2(pt2_tmp[0][1], pt2_tmp[1][1]))) {
-    return 1;
-  }
-
-  // Assert mul(G2, CURVE_ORDER) == inf
-  g2::mul(G2, CURVE_ORDER, pt2_tmp[0]);
-  if (!g2::is_inf(pt2_tmp[0])) {
-    return 1;
-  }
-
-  // Assert mul(G2, 2 * FIELD_MODULUS - CURVE_ORDER) != inf
-  fq2_tmp[0][0] = fq_sub(fq_mul(2, FIELD_MODULUS), CURVE_ORDER);
-  pt2_tmp[0][0][0] = fq_mul(G2[0][0], fq2_tmp[0][0]);
-  pt2_tmp[0][0][1] = fq_mul(G2[0][1], fq2_tmp[0][0]);
-  pt2_tmp[0][1][0] = fq_mul(G2[1][0], fq2_tmp[0][0]);
-  pt2_tmp[0][1][1] = fq_mul(G2[1][1], fq2_tmp[0][0]);
-  if (g2::is_inf(pt2_tmp[0])) {
-    return 1;
-  }
-
-  // Assert is_on_curve(mul(G2, 9))
-  g2::mul(G2, 9, pt2_tmp[0]);
-  if (!g2::is_on_curve(pt2_tmp[0])) {
-    return 1;
-  }
-
-  uint256 ptc_tmp[8][2][12] = {};
+  uint256 pt2_tmp[4][2][2] = {};
+  uint256 ptc_tmp[4][2][12] = {};
 
   // Assert twist(G2) == G12;
   g2::twist(G2, ptc_tmp[0]);
