@@ -3,6 +3,65 @@
 
 using namespace bn128;
 
+// Check consistency of the "line function"
+int test_linefunc() {
+  uint256 one[2] = {};
+  uint256 two[2] = {};
+  uint256 trd[2] = {};
+  cp2(G1, one);
+  g1::doubl2(G1, two);
+  g1::mul(G1, 3, trd);
+
+  uint256 neg_one[2] = {};
+  uint256 neg_two[2] = {};
+  uint256 neg_trd[2] = {};
+  g1::mul(G1, CURVE_ORDER - 1, neg_one);
+  g1::mul(G1, CURVE_ORDER - 2, neg_two);
+  g1::mul(G1, CURVE_ORDER - 3, neg_trd);
+
+  // Assert linefunc(one, two, one) == FQ(0)
+  if (linefunc(one, two, one) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, two, two) == FQ(0)
+  if (linefunc(one, two, two) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, two, three) != FQ(0)
+  if (linefunc(one, two, trd) == 0) {
+    return 1;
+  }
+  // Assert linefunc(one, two, negthree) == FQ(0)
+  if (linefunc(one, two, neg_trd) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, negone, one) == FQ(0)
+  if (linefunc(one, neg_one, one) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, negone, negone) == FQ(0)
+  if (linefunc(one, neg_one, neg_one) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, negone, two) != FQ(0)
+  if (linefunc(one, neg_one, two) == 0) {
+    return 1;
+  }
+  // Assert linefunc(one, one, one) == FQ(0)
+  if (linefunc(one, one, one) != 0) {
+    return 1;
+  }
+  // Assert linefunc(one, one, two) != FQ(0)
+  if (linefunc(one, one, two) == 0) {
+    return 1;
+  }
+  // Assert linefunc(one, one, negtwo) == FQ(0)
+  if (linefunc(one, one, neg_two) != 0) {
+    return 1;
+  }
+  return 0;
+}
+
 int main() {
   // Assert FQ(2) + FQ(2) == FQ(4)
   if (fq_add(2, 2) != 4) {
@@ -293,6 +352,10 @@ int main() {
   pt2_tmp[2][1][1] = intx::from_string<uint256>("0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
   if (!(eq2(pt2_tmp[1][0], pt2_tmp[2][0]) && eq2(pt2_tmp[1][1], pt2_tmp[2][1]))) {
     return 7;
+  }
+
+  if (test_linefunc() != 0) {
+    return 1;
   }
 
   return 0;

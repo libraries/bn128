@@ -10,6 +10,11 @@ inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
 }
 
+inline void cp2(const uint256 x[2], uint256 r[2]) {
+  r[0] = x[0];
+  r[1] = x[1];
+}
+
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
   return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
          x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
@@ -687,5 +692,42 @@ void mul(const uint256 pt[2][12], const uint256 &n, uint256 r[2][12]) {
 }
 
 } // namespace g12
+
+constexpr uint256 ATE_LOOP_COUNT = intx::from_string<uint256>("0x19d797039be763ba8");
+constexpr int LOG_ATE_LOOP_COUNT = 63;
+
+// Create a function representing the line between P1 and P2, and evaluate it at T
+uint256 linefunc(const uint256 p1[2], const uint256 p2[2], const uint256 pt[2]) {
+  // No points-at-infinity allowed, sorry
+  if (g1::is_inf(p1) || g1::is_inf(p2) || g1::is_inf(pt)) {
+    // What should we did here?
+  }
+  uint256 x1 = p1[0], y1 = p1[1];
+  uint256 x2 = p2[0], y2 = p2[1];
+  uint256 xt = pt[0], yt = pt[1];
+  if (x1 != x2) {
+    uint256 m = fq_div(fq_sub(y2, y1), fq_sub(x2, x1));
+    return fq_sub(fq_mul(m, fq_sub(xt, x1)), fq_sub(yt, y1));
+  } else if (y1 == y2) {
+    uint256 m = fq_div(fq_mul(3, fq_mul(x1, x1)), fq_mul(2, y1));
+    return fq_sub(fq_mul(m, fq_sub(xt, x1)), fq_sub(yt, y1));
+  } else {
+    return fq_sub(xt, x1);
+  }
+}
+
+// def linefunc(P1, P2, T):
+//     assert P1 and P2 and T # No points-at-infinity allowed, sorry
+//     x1, y1 = P1
+//     x2, y2 = P2
+//     xt, yt = T
+//     if x1 != x2:
+//         m = (y2 - y1) / (x2 - x1)
+//         return m * (xt - x1) - (yt - y1)
+//     elif y1 == y2:
+//         m = 3 * x1**2 / (2 * y1)
+//         return m * (xt - x1) - (yt - y1)
+//     else:
+//         return xt - x1
 
 } // namespace bn128
