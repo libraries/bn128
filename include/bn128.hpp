@@ -326,6 +326,10 @@ constexpr uint256 G2[2][2] = {
         intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
         intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"),
     }};
+
+// "Twist" a point in E(FQ2) into a point in E(FQ12)
+constexpr uint256 W[12] = {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 constexpr uint256 G12[2][12] = {
     {0, 0,
      intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"),
@@ -528,6 +532,33 @@ void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
     doubl2(pt, t[0]);
     mul(t[0], n >> 1, t[1]);
     add(t[1], pt, r);
+  }
+}
+
+// Elliptic curve point multiplication.
+void twist(const uint256 pt[2][2], uint256 r[2][12]) {
+  if (is_inf(pt)) {
+    for (int i = 0; i < 12; i++) {
+      r[0][i] = -1;
+      r[1][i] = -1;
+    }
+    return;
+  }
+  uint256 xcoeffs[2] = {fq_sub(pt[0][0], fq_mul(pt[0][1], 9)), pt[0][1]};
+  uint256 ycoeffs[2] = {fq_sub(pt[1][0], fq_mul(pt[1][1], 9)), pt[1][1]};
+  uint256 nx[12] = {xcoeffs[0], 0, 0, 0, 0, 0, xcoeffs[1], 0, 0, 0, 0, 0};
+  uint256 ny[12] = {ycoeffs[0], 0, 0, 0, 0, 0, ycoeffs[1], 0, 0, 0, 0, 0};
+
+  uint256 t[2][12];
+  fq12_mul(W, W, t[0]);
+  fq12_mul(nx, t[0], t[1]);
+  for (int i = 0; i < 12; i++) {
+    r[0][i] = t[1][i];
+  }
+  fq12_pow(W, 3, t[0]);
+  fq12_mul(ny, t[0], t[1]);
+  for (int i = 0; i < 12; i++) {
+    r[1][i] = t[1][i];
   }
 }
 

@@ -236,6 +236,12 @@ int main() {
 
   uint256 ptc_tmp[8][2][12] = {};
 
+  // Assert twist(G2) == G12;
+  g2::twist(G2, ptc_tmp[0]);
+  if (!(eq12(ptc_tmp[0][0], G12[0]) && eq12(ptc_tmp[0][1], G12[1]))) {
+    return 6;
+  }
+
   // Assert add(add(double(G12), G12), G12) == double(double(G12))
   g12::doubl2(G12, ptc_tmp[0]);
   g12::add(ptc_tmp[0], G12, ptc_tmp[1]);
