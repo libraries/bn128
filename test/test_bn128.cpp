@@ -82,6 +82,16 @@ int test_fq2() {
     return 1;
   }
 
+  // Assert FQ2([3, 0]) / FQ2([9, 1]) == B2
+  tmp[0][0] = 3;
+  tmp[0][1] = 0;
+  tmp[1][0] = 9;
+  tmp[1][1] = 1;
+  fq2_div(tmp[0], tmp[1], tmp[0]);
+  if (!eq2(tmp[0], B2)) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -210,16 +220,6 @@ int main() {
     return 1;
 
   uint256 fq2_tmp[8][2] = {};
-
-  // Assert FQ2([3, 0]) / FQ2([9, 1]) == B2
-  fq2_tmp[0][0] = 3;
-  fq2_tmp[0][1] = 0;
-  fq2_tmp[1][0] = 9;
-  fq2_tmp[1][1] = 1;
-  fq2_div(fq2_tmp[0], fq2_tmp[1], fq2_tmp[0]);
-  if (!eq2(fq2_tmp[0], B2)) {
-    return 1;
-  }
 
   // Assert G1 is on curve
   if (!g1::is_on_curve(G1)) {
