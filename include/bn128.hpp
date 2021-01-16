@@ -770,19 +770,6 @@ void linefunc12(const uint256 p1[2][12], const uint256 p2[2][12], const uint256 
   } else {
     fq12_sub(pt[0], p1[0], r);
   }
-
-  //   assert P1 and P2 and T # No points-at-infinity allowed, sorry
-  //   x1, y1 = P1
-  //   x2, y2 = P2
-  //   xt, yt = T
-  //   if x1 != x2:
-  //       m = (y2 - y1) / (x2 - x1)
-  //       return m * (xt - x1) - (yt - y1)
-  //   elif y1 == y2:
-  //       m = 3 * x1**2 / (2 * y1)
-  //       return m * (xt - x1) - (yt - y1)
-  //   else:
-  //       return xt - x1
 }
 
 void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 r[12]) {
@@ -858,47 +845,9 @@ void miller_loop(const uint256 q[2][12], const uint256 p[2][12], uint256 r[12]) 
   fq12_mul(f, t[0], t[1]);
   cp12(t[1], f);
 
-  // printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", static_cast<int>(f[0] % 256), static_cast<int>(f[1] % 256), static_cast<int>(f[2] % 256), static_cast<int>(f[3] % 256), static_cast<int>(f[4] % 256), static_cast<int>(f[5] % 256), static_cast<int>(f[6] % 256), static_cast<int>(f[7] % 256), static_cast<int>(f[8] % 256), static_cast<int>(f[9] % 256), static_cast<int>(f[10] % 256), static_cast<int>(f[11] % 256));
-
   intx::uint<4096> n = (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} - 1) / intx::uint<4096>{CURVE_ORDER};
   final_exponentiate(f, n, r);
-
-  // fq12_pow(f, intx::from_string<uint256>("0xb3c4d79d41a917593a97459a6afe5ea2b687f7e0078302b6"), r);
-
-  // Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus)
-  // # assert is_on_curve(Q1, b12)
-  // nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus)
-  // # assert is_on_curve(nQ2, b12)
-  // f = f * linefunc(R, Q1, P)
-  // R = add(R, Q1)
-  // f = f * linefunc(R, nQ2, P)
-  // # R = add(R, nQ2) This line is in many specifications but it technically does nothing
-  // return f ** ((field_modulus ** 12 - 1) // curve_order)
-
 }
-
-// # Main miller loop
-// def miller_loop(Q, P):
-//     if Q is None or P is None:
-//         return FQ12.one()
-//     R = Q
-//     f = FQ12.one()
-//     for i in range(log_ate_loop_count, -1, -1):
-//         f = f * f * linefunc(R, R, P)
-//         R = double(R)
-//         if ate_loop_count & (2**i):
-//             f = f * linefunc(R, Q, P)
-//             R = add(R, Q)
-//     # assert R == multiply(Q, ate_loop_count)
-//     Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus)
-//     # assert is_on_curve(Q1, b12)
-//     nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus)
-//     # assert is_on_curve(nQ2, b12)
-//     f = f * linefunc(R, Q1, P)
-//     R = add(R, Q1)
-//     f = f * linefunc(R, nQ2, P)
-//     # R = add(R, nQ2) This line is in many specifications but it technically does nothing
-//     return f ** ((field_modulus ** 12 - 1) // curve_order)
 
 // Pairing computation
 void pairing(const uint256 q[2][2], const uint256 p[2], uint256 r[12]) {
@@ -909,12 +858,6 @@ void pairing(const uint256 q[2][2], const uint256 p[2], uint256 r[12]) {
   uint256 fq12_p[2][12] = {{p[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {p[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
   miller_loop(twist_q, fq12_p, r);
 }
-
-
-// def pairing(Q, P):
-//     assert is_on_curve(Q, b2)
-//     assert is_on_curve(P, b)
-//     return miller_loop(twist(Q), cast_point_to_fq12(P))
 
 } // namespace bn128
 
