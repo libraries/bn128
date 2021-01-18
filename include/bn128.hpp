@@ -8,7 +8,7 @@ namespace bn128 {
 // Maybe there is a better way to implement this macro, but this is enough for now.
 #ifdef __riscv
 #undef assert
-#define assert(x) if (x) exit(1)
+#define assert(x) if (!x) exit(1)
 #endif
 
 using uint256 = intx::uint256;
