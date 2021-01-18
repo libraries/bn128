@@ -48,7 +48,7 @@ inline void cp12(const uint256 x[12], uint256 r[12]) {
 constexpr uint256 FIELD_MODULUS = intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
 
 inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return n != 0 ? intx::addmod(x, y, n) : 0;
+  return intx::addmod(x, y, n);
 }
 
 inline uint256 _submod(const uint256 &x, const uint256 &y, const uint256 &n) {
@@ -60,7 +60,7 @@ inline uint256 _negmod(const uint256 &x, const uint256 &n) {
 }
 
 inline uint256 _mulmod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return n != 0 ? intx::mulmod(x, y, n) : 0;
+  return intx::mulmod(x, y, n);
 }
 
 // Extended euclidean algorithm to find modular inverses for integers.
@@ -69,7 +69,7 @@ inline uint256 _invmod(const uint256 &x, const uint256 &n) {
   uint256 newt = 1;
   uint256 r = n;
   uint256 newr = x;
-  while (newr != 0) {
+  while (newr) {
     uint256 q = r / newr;
     uint256 oldt = t;
     t = newt;
