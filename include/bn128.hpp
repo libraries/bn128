@@ -90,10 +90,10 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
     return 1;
   } else if (y == 1) {
     return x;
-  } else if (y % 2 == 0) {
-    return _powmod(_mulmod(x, x, n), y >> 1, n);
-  } else {
+  } else if (y & 1) {
     return _mulmod(_powmod(_mulmod(x, x, n), y >> 1, n), x, n);
+  } else {
+    return _powmod(_mulmod(x, x, n), y >> 1, n);
   }
 }
 
@@ -153,6 +153,13 @@ void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   r[1] = b;
 }
 
+void fq2_muc(const uint256 x[2], const uint256& c, uint256 r[2]) {
+  uint256 a = fq_mul(x[0], c);
+  uint256 b = fq_mul(x[1], c);
+  r[0] = a;
+  r[1] = b;
+}
+
 void fq2_inv(const uint256 x[2], uint256 r[2]) {
   uint256 i = fq_inv(fq_add(fq_mul(x[0], x[0]), fq_mul(x[1], x[1])));
   uint256 a = fq_mul(x[0], i);
@@ -167,22 +174,26 @@ void fq2_div(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   fq2_mul(x, t, r);
 }
 
+void fq2_dic(const uint256 x[2], const uint256& c, uint256 r[2]) {
+  uint256 a = fq_div(x[0], c);
+  uint256 b = fq_div(x[1], c);
+  r[0] = a;
+  r[1] = b;
+}
+
 void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
   if (y == 0) {
-    r[0] = 1;
-    r[1] = 0;
+    cp2(FQ2_ONE, r);
   } else if (y == 1) {
-    r[0] = x[0];
-    r[1] = x[1];
-  } else if (y % 2 == 0) {
+    cp2(x, r);
+  } else if (y & 1) {
     uint256 t[2];
     fq2_mul(x, x, t);
-    fq2_pow(t, y >> 1, r);
+    fq2_pow(t, y >> 1, t);
+    fq2_mul(x, t, r);
   } else {
-    uint256 t[2][2];
-    fq2_mul(x, x, t[0]);
-    fq2_pow(t[0], y >> 1, t[1]);
-    fq2_mul(x, t[1], r);
+    fq2_mul(x, x, r);
+    fq2_pow(r, y >> 1, r);
   }
 }
 
