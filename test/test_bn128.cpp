@@ -386,7 +386,6 @@ int test_pairing() {
   // pn1 = pairing(G2, neg(G1))
   // assert p1 * pn1 == FQ12.one()
   pairing(G2, G1, p1);
-  cp12(p1, tmp);
   pairing(G2, neg_g1, pn1);
   fq12_mul(p1, pn1, tmp);
   if (!eq12(tmp, FQ12_ONE)) {

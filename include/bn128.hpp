@@ -286,44 +286,39 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13],
 }
 
 void fq12_inv(const uint256 x[12], uint256 r[12]) {
-  const int degree = 12;
-  uint256 lm[degree + 1] = {lm[0] = 1, 0};
-  uint256 hm[degree + 1] = {0};
-  uint256 low[degree + 1] = {};
-  for (int i = 0; i < degree; i++) {
-    low[i] = x[i];
-  }
-  low[degree] = 0;
-  uint256 high[degree + 1] = {};
-  for (int i = 0; i < degree; i++) {
-    high[i] = FQ12_MODULUS_COEFFS[i];
-  }
-  high[degree] = 1;
+  uint256 lm[13] = {lm[0] = 1, 0};
+  uint256 hm[13] = {0};
+  uint256 low[13] = {};
+  cp12(x, low);
+  low[12] = 0;
+  uint256 high[13] = {};
+  cp12(FQ12_MODULUS_COEFFS, high);
+  high[12] = 1;
 
-  uint256 temp[degree + 1] = {};
-  uint256 nm[degree + 1] = {};
-  uint256 news[degree + 1] = {};
+  uint256 temp[13] = {};
+  uint256 nm[13] = {};
+  uint256 news[13] = {};
   while (_deg(low) != 0) {
-    for (int i = 0; i < degree + 1; i++) {
+    for (int i = 0; i < 13; i++) {
       temp[i] = 0;
       nm[i] = hm[i];
       news[i] = high[i];
     }
     _poly_rounded_div(high, low, temp);
-    for (int i = 0; i < degree + 1; i++) {
-      for (int j = 0; j < degree + 1 - i; j++) {
+    for (int i = 0; i < 13; i++) {
+      for (int j = 0; j < 13 - i; j++) {
         nm[i + j] = fq_sub(nm[i + j], fq_mul(lm[i], temp[j]));
         news[i + j] = fq_sub(news[i + j], fq_mul(low[i], temp[j]));
       }
     }
-    for (int i = 0; i < degree + 1; i++) {
+    for (int i = 0; i < 13; i++) {
       hm[i] = lm[i];
       lm[i] = nm[i];
       high[i] = low[i];
       low[i] = news[i];
     }
   }
-  for (int i = 0; i < degree; i++) {
+  for (int i = 0; i < 12; i++) {
     r[i] = fq_div(lm[i], low[0]);
   }
 }
@@ -342,23 +337,17 @@ void fq12_dic(const uint256 x[12], const uint256 &c, uint256 r[12]) {
 
 void fq12_pow(const uint256 x[12], const uint256 &y, uint256 r[12]) {
   if (y == 0) {
-    r[0] = 1;
-    for (int i = 1; i < 12; i++) {
-      r[i] = 0;
-    }
+    cp12(FQ12_ONE, r);
   } else if (y == 1) {
-    for (int i = 0; i < 12; i++) {
-      r[i] = x[i];
-    }
-  } else if (y % 2 == 0) {
+    cp12(x, r);
+  } else if (y & 1) {
     uint256 t[12];
     fq12_mul(x, x, t);
-    fq12_pow(t, y >> 1, r);
+    fq12_pow(t, y >> 1, t);
+    fq12_mul(x, t, r);
   } else {
-    uint256 t[12];
-    fq12_mul(x, x, t);
-    fq12_pow(t, y >> 1, r);
-    fq12_mul(x, r, r);
+    fq12_mul(x, x, r);
+    fq12_pow(r, y >> 1, r);
   }
 }
 
