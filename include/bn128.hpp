@@ -806,25 +806,18 @@ void linefunc12(const uint256 p1[2][12], const uint256 p2[2][12],
 
 void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y,
                         uint256 r[12]) {
-  if (y == 0) {
-    r[0] = 1;
-    for (int i = 1; i < 12; i++) {
-      r[i] = 0;
+  uint256 o[12] = {1, 0};
+  uint256 t[12] = {};
+  cp12(x, t);
+  intx::uint<4096> other = y;
+  while (other > 0) {
+    if (other & 1) {
+      fq12_mul(o, t, o);
     }
-  } else if (y == 1) {
-    for (int i = 0; i < 12; i++) {
-      r[i] = x[i];
-    }
-  } else if (y % 2 == 0) {
-    uint256 t[12];
-    fq12_mul(x, x, t);
-    final_exponentiate(t, y >> 1, r);
-  } else {
-    uint256 t[12];
-    fq12_mul(x, x, t);
-    final_exponentiate(t, y >> 1, r);
-    fq12_mul(x, r, r);
+    other >>= 1;
+    fq12_mul(t, t, t);
   }
+  cp12(o, r);
 }
 
 // Main miller loop
