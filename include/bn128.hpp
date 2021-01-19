@@ -11,7 +11,7 @@ namespace bn128 {
 #undef assert
 #define assert(x)                                                              \
   if (!x)                                                                      \
-  exit(1)
+  exit(2)
 #endif
 
 using uint256 = intx::uint256;
@@ -44,6 +44,11 @@ inline void cp12(const uint256 x[12], uint256 r[12]) {
   r[9] = x[9];
   r[10] = x[10];
   r[11] = x[11];
+}
+
+inline void cp13(const uint256 x[13], uint256 r[13]) {
+  cp12(x, r);
+  r[12] = x[12];
 }
 
 // The prime modulus of the field.
@@ -228,15 +233,18 @@ void fq12_neg(const uint256 x[12], uint256 r[12]) {
 
 void fq12_mul(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
   uint256 b[23] = {0};
+  uint256 eli;
+  uint256 elj;
+  uint256 top;
   for (int i = 0; i < 12; i++) {
-    uint256 eli = x[i];
+    eli = x[i];
     for (int j = 0; j < 12; j++) {
-      uint256 elj = y[j];
+      elj = y[j];
       b[i + j] = fq_add(b[i + j], fq_mul(eli, elj));
     }
   }
   for (int exp = 10; exp > -1; exp--) {
-    uint256 top = b[exp + 12];
+    top = b[exp + 12];
     b[exp] = fq_sub(b[exp], fq_mul(top, FQ12_MODULUS_COEFFS[0]));
     b[exp + 6] = fq_sub(b[exp + 6], fq_mul(top, FQ12_MODULUS_COEFFS[6]));
   }
@@ -262,15 +270,13 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13],
                        uint256 r[13]) {
   int dega = _deg(a);
   int degb = _deg(b);
-  uint256 temp[13] = {};
-  for (int i = 0; i < 13; i++) {
-    temp[i] = a[i];
-  }
+  uint256 t[13] = {};
+  cp13(a, t);
   uint256 o[13] = {0};
   for (int i = dega - degb; i > -1; i--) {
-    o[i] = fq_add(o[i], fq_div(temp[degb + i], b[degb]));
+    o[i] = fq_add(o[i], fq_div(t[degb + i], b[degb]));
     for (int c = 0; c < degb + 1; c++) {
-      temp[c + i] = fq_sub(temp[c + i], o[c]);
+      t[c + i] = fq_sub(t[c + i], o[c]);
     }
   }
   int n = _deg(o) + 1;
@@ -323,9 +329,9 @@ void fq12_inv(const uint256 x[12], uint256 r[12]) {
 }
 
 void fq12_div(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
-  uint256 temp[12];
-  fq12_inv(y, temp);
-  fq12_mul(x, temp, r);
+  uint256 t[12];
+  fq12_inv(y, t);
+  fq12_mul(x, t, r);
 }
 
 void fq12_dic(const uint256 x[12], const uint256 &c, uint256 r[12]) {
