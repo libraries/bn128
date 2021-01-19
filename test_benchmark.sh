@@ -10,4 +10,5 @@ g++ -fno-exceptions -Os -Iinclude -I/src/intx/include -o build/test test/test_bn
 echo "ok"
 
 $GPP -fno-exceptions -Os -march=rv64gc -Iinclude -I/src/intx/include -o build/test test/test_bn128.cpp
-# pm c /src/ckb_vm_run/target/release/int64 build/test
+pm c ~/app/riscv64b/bin/spike pk build/test
+pm c /src/ckb_vm_run/target/release/int64 build/test

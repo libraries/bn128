@@ -286,7 +286,7 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13],
 }
 
 void fq12_inv(const uint256 x[12], uint256 r[12]) {
-  uint256 lm[13] = {lm[0] = 1, 0};
+  uint256 lm[13] = {1, 0};
   uint256 hm[13] = {0};
   uint256 low[13] = {};
   cp12(x, low);
@@ -298,7 +298,7 @@ void fq12_inv(const uint256 x[12], uint256 r[12]) {
   uint256 temp[13] = {};
   uint256 nm[13] = {};
   uint256 news[13] = {};
-  while (_deg(low) != 0) {
+  while (_deg(low)) {
     for (int i = 0; i < 13; i++) {
       temp[i] = 0;
       nm[i] = hm[i];
