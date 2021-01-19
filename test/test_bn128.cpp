@@ -42,7 +42,7 @@ int test_fq2() {
   uint256 f[2] = {1, 2};
   uint256 fpx[2] = {2, 2};
   uint256 one[2] = {1, 0};
-  uint256 tmp[8][2] = {};
+  uint256 tmp[2][2] = {};
 
   // Assert x + f == fpx
   fq2_add(x, f, tmp[0]);
@@ -100,7 +100,7 @@ int test_fq12() {
   uint256 f[12] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   uint256 fpx[12] = {2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
   uint256 one[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  uint256 tmp[8][12] = {};
+  uint256 tmp[3][12] = {};
 
   // Assert x + f == fpx
   fq12_add(x, f, tmp[0]);
@@ -386,7 +386,6 @@ int test_pairing() {
   // pn1 = pairing(G2, neg(G1))
   // assert p1 * pn1 == FQ12.one()
   pairing(G2, G1, p1);
-  cp12(p1, tmp);
   pairing(G2, neg_g1, pn1);
   fq12_mul(p1, pn1, tmp);
   if (!eq12(tmp, FQ12_ONE)) {
