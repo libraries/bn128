@@ -1117,65 +1117,29 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
     }
   }
 
-  g12::mul(Q, ATE_LOOP_COUNT, temp);
-  assert(g12::eq(R, temp));
-
-  // Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus, Q[2] ** field_modulus)
   uint256 Q1[3][12] = {};
   fq12_pow(Q[0], FIELD_MODULUS, Q1[0]);
   fq12_pow(Q[1], FIELD_MODULUS, Q1[1]);
   fq12_pow(Q[2], FIELD_MODULUS, Q1[2]);
-  // # assert is_on_curve(Q1, b12)
-  assert(g12::is_on_curve(Q1));
 
-  // nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus, Q1[2] ** field_modulus)
   uint256 nQ2[3][12] = {};
   fq12_pow(Q1[0], FIELD_MODULUS, nQ2[0]);
   fq12_pow(Q1[1], FIELD_MODULUS, nQ2[2]);
   fq12_neg(nQ2[2], nQ2[1]);
   fq12_pow(Q1[2], FIELD_MODULUS, nQ2[2]);
 
-  // # assert is_on_curve(nQ2, b12)
-  assert(g12::is_on_curve(nQ2));
-
-
-  // _n1, _d1 = linefunc(R, Q1, P)
-  // R = add(R, Q1)
   linefunc12(R, Q1, P, nd1);
   g12::add(R, Q1, temp);
   cp12(temp[0], R[0]);
   cp12(temp[1], R[1]);
   cp12(temp[2], R[2]);
 
-  // _n2, _d2 = linefunc(R, nQ2, P)
-  // printf("====== R=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(R[0][0]).c_str(), intx::hex(R[0][1]).c_str(), intx::hex(R[0][2]).c_str(), intx::hex(R[0][3]).c_str(), intx::hex(R[0][4]).c_str(), intx::hex(R[0][5]).c_str(), intx::hex(R[0][6]).c_str(), intx::hex(R[0][7]).c_str(), intx::hex(R[0][8]).c_str(), intx::hex(R[0][9]).c_str(), intx::hex(R[0][10]).c_str(), intx::hex(R[0][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(R[1][0]).c_str(), intx::hex(R[1][1]).c_str(), intx::hex(R[1][2]).c_str(), intx::hex(R[1][3]).c_str(), intx::hex(R[1][4]).c_str(), intx::hex(R[1][5]).c_str(), intx::hex(R[1][6]).c_str(), intx::hex(R[1][7]).c_str(), intx::hex(R[1][8]).c_str(), intx::hex(R[1][9]).c_str(), intx::hex(R[1][10]).c_str(), intx::hex(R[1][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(R[2][0]).c_str(), intx::hex(R[2][1]).c_str(), intx::hex(R[2][2]).c_str(), intx::hex(R[2][3]).c_str(), intx::hex(R[2][4]).c_str(), intx::hex(R[2][5]).c_str(), intx::hex(R[2][6]).c_str(), intx::hex(R[2][7]).c_str(), intx::hex(R[2][8]).c_str(), intx::hex(R[2][9]).c_str(), intx::hex(R[2][10]).c_str(), intx::hex(R[2][11]).c_str());
-  // printf("====== nQ2=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(nQ2[0][0]).c_str(), intx::hex(nQ2[0][1]).c_str(), intx::hex(nQ2[0][2]).c_str(), intx::hex(nQ2[0][3]).c_str(), intx::hex(nQ2[0][4]).c_str(), intx::hex(nQ2[0][5]).c_str(), intx::hex(nQ2[0][6]).c_str(), intx::hex(nQ2[0][7]).c_str(), intx::hex(nQ2[0][8]).c_str(), intx::hex(nQ2[0][9]).c_str(), intx::hex(nQ2[0][10]).c_str(), intx::hex(nQ2[0][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(nQ2[1][0]).c_str(), intx::hex(nQ2[1][1]).c_str(), intx::hex(nQ2[1][2]).c_str(), intx::hex(nQ2[1][3]).c_str(), intx::hex(nQ2[1][4]).c_str(), intx::hex(nQ2[1][5]).c_str(), intx::hex(nQ2[1][6]).c_str(), intx::hex(nQ2[1][7]).c_str(), intx::hex(nQ2[1][8]).c_str(), intx::hex(nQ2[1][9]).c_str(), intx::hex(nQ2[1][10]).c_str(), intx::hex(nQ2[1][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(nQ2[2][0]).c_str(), intx::hex(nQ2[2][1]).c_str(), intx::hex(nQ2[2][2]).c_str(), intx::hex(nQ2[2][3]).c_str(), intx::hex(nQ2[2][4]).c_str(), intx::hex(nQ2[2][5]).c_str(), intx::hex(nQ2[2][6]).c_str(), intx::hex(nQ2[2][7]).c_str(), intx::hex(nQ2[2][8]).c_str(), intx::hex(nQ2[2][9]).c_str(), intx::hex(nQ2[2][10]).c_str(), intx::hex(nQ2[2][11]).c_str());
-  // printf("====== P=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(P[0][0]).c_str(), intx::hex(P[0][1]).c_str(), intx::hex(P[0][2]).c_str(), intx::hex(P[0][3]).c_str(), intx::hex(P[0][4]).c_str(), intx::hex(P[0][5]).c_str(), intx::hex(P[0][6]).c_str(), intx::hex(P[0][7]).c_str(), intx::hex(P[0][8]).c_str(), intx::hex(P[0][9]).c_str(), intx::hex(P[0][10]).c_str(), intx::hex(P[0][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(P[1][0]).c_str(), intx::hex(P[1][1]).c_str(), intx::hex(P[1][2]).c_str(), intx::hex(P[1][3]).c_str(), intx::hex(P[1][4]).c_str(), intx::hex(P[1][5]).c_str(), intx::hex(P[1][6]).c_str(), intx::hex(P[1][7]).c_str(), intx::hex(P[1][8]).c_str(), intx::hex(P[1][9]).c_str(), intx::hex(P[1][10]).c_str(), intx::hex(P[1][11]).c_str());
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(P[2][0]).c_str(), intx::hex(P[2][1]).c_str(), intx::hex(P[2][2]).c_str(), intx::hex(P[2][3]).c_str(), intx::hex(P[2][4]).c_str(), intx::hex(P[2][5]).c_str(), intx::hex(P[2][6]).c_str(), intx::hex(P[2][7]).c_str(), intx::hex(P[2][8]).c_str(), intx::hex(P[2][9]).c_str(), intx::hex(P[2][10]).c_str(), intx::hex(P[2][11]).c_str());
-
   linefunc12(R, nQ2, P, nd2);
-  // printf("====== _n=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(nd2[0][0]).c_str(), intx::hex(nd2[0][1]).c_str(), intx::hex(nd2[0][2]).c_str(), intx::hex(nd2[0][3]).c_str(), intx::hex(nd2[0][4]).c_str(), intx::hex(nd2[0][5]).c_str(), intx::hex(nd2[0][6]).c_str(), intx::hex(nd2[0][7]).c_str(), intx::hex(nd2[0][8]).c_str(), intx::hex(nd2[0][9]).c_str(), intx::hex(nd2[0][10]).c_str(), intx::hex(nd2[0][11]).c_str());
-  // printf("====== _d=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(nd2[1][0]).c_str(), intx::hex(nd2[1][1]).c_str(), intx::hex(nd2[1][2]).c_str(), intx::hex(nd2[1][3]).c_str(), intx::hex(nd2[1][4]).c_str(), intx::hex(nd2[1][5]).c_str(), intx::hex(nd2[1][6]).c_str(), intx::hex(nd2[1][7]).c_str(), intx::hex(nd2[1][8]).c_str(), intx::hex(nd2[1][9]).c_str(), intx::hex(nd2[1][10]).c_str(), intx::hex(nd2[1][11]).c_str());
-
-  // f = f_num * _n1 * _n2 / (f_den * _d1 * _d2)
   fq12_mul(f_den, nd1[1], temp[0]);
   fq12_mul(temp[0], nd2[1], temp[1]);
   fq12_div(nd2[0], temp[1], temp[0]);
   fq12_mul(temp[0], nd1[0], temp[1]);
   fq12_mul(temp[1], f_num, temp[0]);
-
-  // printf("====== f=========\n");
-  // printf("%s %s %s %s %s %s %s %s %s %s %s %s\n", intx::hex(temp[0][0]).c_str(), intx::hex(temp[0][1]).c_str(), intx::hex(temp[0][2]).c_str(), intx::hex(temp[0][3]).c_str(), intx::hex(temp[0][4]).c_str(), intx::hex(temp[0][5]).c_str(), intx::hex(temp[0][6]).c_str(), intx::hex(temp[0][7]).c_str(), intx::hex(temp[0][8]).c_str(), intx::hex(temp[0][9]).c_str(), intx::hex(temp[0][10]).c_str(), intx::hex(temp[0][11]).c_str());
 
   intx::uint<4096> n =
       (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
@@ -1191,17 +1155,10 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
 
 // Pairing computation
 void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
-
-  assert(g2::is_on_curve(Q));
-  assert(g1::is_on_curve(P));
-
   if (g2::is_inf(Q) || g1::is_inf(P)) {
     cp12(FQ12_ONE, r);
     return;
   }
-
-  // if P[-1] == P[-1].__class__.zero() or Q[-1] == Q[-1].__class__.zero():
-  //       return FQ12.one()
 
   uint256 twist_q[3][12];
   g2::twist(Q, twist_q);
