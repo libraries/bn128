@@ -144,20 +144,10 @@ int test_fq12() {
 }
 
 int test_g1() {
-  uint256 tmp[4][2] = {};
+  uint256 tmp[4][3] = {};
 
   // Assert G1 is on curve
   if (!g1::is_on_curve(G1)) {
-    return 1;
-  }
-
-  // Assert Double(G1)
-  g1::doubl2(G1, tmp[0]);
-  tmp[1][0] = intx::from_string<uint256>(
-      "0x030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3");
-  tmp[1][1] = intx::from_string<uint256>(
-      "0x15ed738c0e0a7c92e7845f96b2ae9c0a68a6a449e3538fc7ff3ebf7a5a18a2c4");
-  if (!eq2(tmp[0], tmp[1])) {
     return 1;
   }
 
@@ -167,13 +157,13 @@ int test_g1() {
   g1::add(tmp[0], G1, tmp[1]);
   g1::doubl2(G1, tmp[0]);
   g1::doubl2(tmp[0], tmp[2]);
-  if (!eq2(tmp[1], tmp[2])) {
+  if (!g1::eq(tmp[1], tmp[2])) {
     return 1;
   }
 
   // Assert double(G1) != G1
   g1::doubl2(G1, tmp[0]);
-  if (eq2(tmp[0], G1)) {
+  if (g1::eq(tmp[0], G1)) {
     return 1;
   }
 
@@ -184,13 +174,13 @@ int test_g1() {
   g1::mul(G1, 12, tmp[1]);
   g1::mul(G1, 2, tmp[2]);
   g1::add(tmp[1], tmp[2], tmp[3]);
-  if (!eq2(tmp[0], tmp[3])) {
+  if (!g1::eq(tmp[0], tmp[3])) {
     return 1;
   }
 
   // Assert mul(G1, CURVE_ORDER) == inf
   g1::mul(G1, CURVE_ORDER, tmp[0]);
-  if (!eq2(tmp[0], g1::INF)) {
+  if (!g1::is_inf(tmp[0])) {
     return 1;
   }
 
@@ -198,7 +188,7 @@ int test_g1() {
 }
 
 int test_g2() {
-  uint256 tmp[4][2][2] = {};
+  uint256 tmp[4][3][2] = {};
 
   // Assert G2 is on curve
   if (!g2::is_on_curve(G2)) {
@@ -211,13 +201,13 @@ int test_g2() {
   g2::add(tmp[1], G2, tmp[0]);
   g2::doubl2(G2, tmp[2]);
   g2::doubl2(tmp[2], tmp[1]);
-  if (!(eq2(tmp[0][0], tmp[1][0]) && eq2(tmp[0][1], tmp[1][1]))) {
+  if (!g2::eq(tmp[0], tmp[1])) {
     return 1;
   }
 
   // Assert double(G2) != G2
   g2::doubl2(G2, tmp[0]);
-  if (eq2(tmp[0][0], G2[0]) && eq2(tmp[0][1], G2[1])) {
+  if (g2::eq(tmp[0], G2)) {
     return 1;
   }
 
@@ -228,7 +218,7 @@ int test_g2() {
   g2::mul(G2, 12, tmp[2]);
   g2::mul(G2, 2, tmp[3]);
   g2::add(tmp[2], tmp[3], tmp[1]);
-  if (!(eq2(tmp[0][0], tmp[1][0]) && eq2(tmp[0][1], tmp[1][1]))) {
+  if (!g2::eq(tmp[0], tmp[1])) {
     return 1;
   }
 
@@ -240,10 +230,7 @@ int test_g2() {
 
   // Assert mul(G2, 2 * FIELD_MODULUS - CURVE_ORDER) != inf
   uint256 n = fq_sub(fq_mul(2, FIELD_MODULUS), CURVE_ORDER);
-  tmp[0][0][0] = fq_mul(G2[0][0], n);
-  tmp[0][0][1] = fq_mul(G2[0][1], n);
-  tmp[0][1][0] = fq_mul(G2[1][0], n);
-  tmp[0][1][1] = fq_mul(G2[1][1], n);
+  g2::mul(G2, n, tmp[0]);
   if (g2::is_inf(tmp[0])) {
     return 1;
   }
@@ -258,11 +245,11 @@ int test_g2() {
 }
 
 int test_g12() {
-  uint256 tmp[4][2][12] = {};
+  uint256 tmp[4][3][12] = {};
 
   // Assert twist(G2) == G12;
   g2::twist(G2, tmp[0]);
-  if (!(eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1]))) {
+  if (!(eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1])) && eq12(tmp[0][2], G12[2])) {
     return 1;
   }
 
@@ -272,13 +259,13 @@ int test_g12() {
   g12::add(tmp[1], G12, tmp[0]);
   g12::doubl2(G12, tmp[2]);
   g12::doubl2(tmp[2], tmp[1]);
-  if (!(eq12(tmp[0][0], tmp[1][0]) && eq12(tmp[0][1], tmp[1][1]))) {
+  if (!g12::eq(tmp[0], tmp[1])) {
     return 1;
   }
 
   // Assert double(G12) != G12
   g12::doubl2(G12, tmp[0]);
-  if (eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1])) {
+  if (g12::eq(tmp[0], G12)) {
     return 1;
   }
 
@@ -289,7 +276,7 @@ int test_g12() {
   g12::mul(G12, 9, tmp[2]);
   g12::mul(G12, 5, tmp[3]);
   g12::add(tmp[2], tmp[3], tmp[1]);
-  if (!(eq12(tmp[0][0], tmp[1][0]) && eq12(tmp[0][1], tmp[1][1]))) {
+  if (!g12::eq(tmp[0], tmp[1])) {
     return 1;
   }
 
@@ -309,67 +296,78 @@ int test_g12() {
 }
 
 int test_linefunc() {
-  uint256 one[2] = {};
-  uint256 two[2] = {};
-  uint256 trd[2] = {};
-  cp2(G1, one);
+  uint256 one[3] = {};
+  uint256 two[3] = {};
+  uint256 trd[3] = {};
+  uint256 out[2] = {};
+  cp(G1, one, 3);
   g1::doubl2(G1, two);
   g1::mul(G1, 3, trd);
 
-  uint256 neg_one[2] = {};
-  uint256 neg_two[2] = {};
-  uint256 neg_trd[2] = {};
+  uint256 neg_one[3] = {};
+  uint256 neg_two[3] = {};
+  uint256 neg_trd[3] = {};
   g1::mul(G1, CURVE_ORDER - 1, neg_one);
   g1::mul(G1, CURVE_ORDER - 2, neg_two);
   g1::mul(G1, CURVE_ORDER - 3, neg_trd);
 
   // Assert linefunc(one, two, one) == FQ(0)
-  if (linefunc(one, two, one) != 0) {
+  linefunc(one, two, one, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, two, two) == FQ(0)
-  if (linefunc(one, two, two) != 0) {
+  linefunc(one, two, two, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, two, three) != FQ(0)
-  if (linefunc(one, two, trd) == 0) {
+  linefunc(one, two, trd, out);
+  if (!out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, two, negthree) == FQ(0)
-  if (linefunc(one, two, neg_trd) != 0) {
+  linefunc(one, two, neg_trd, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, negone, one) == FQ(0)
-  if (linefunc(one, neg_one, one) != 0) {
+  linefunc(one, neg_one, one, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, negone, negone) == FQ(0)
-  if (linefunc(one, neg_one, neg_one) != 0) {
+  linefunc(one, neg_one, neg_one, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, negone, two) != FQ(0)
-  if (linefunc(one, neg_one, two) == 0) {
+  linefunc(one, neg_one, two, out);
+  if (!out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, one, one) == FQ(0)
-  if (linefunc(one, one, one) != 0) {
+  linefunc(one, one, one, out);
+  if (out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, one, two) != FQ(0)
-  if (linefunc(one, one, two) == 0) {
+  linefunc(one, one, two, out);
+  if (!out[0]) {
     return 1;
   }
 
   // Assert linefunc(one, one, negtwo) == FQ(0)
-  if (linefunc(one, one, neg_two) != 0) {
+  linefunc(one, one, neg_two, out);
+  if (out[0]) {
     return 1;
   }
 
@@ -380,13 +378,13 @@ int test_pairing() {
   uint256 p1[12] = {};
   uint256 pn1[12] = {};
   uint256 tmp[12] = {};
-  uint256 neg_g1[2] = {G1[0], fq_neg(G1[1])};
+  uint256 neg_g1[3] = {G1[0], fq_neg(G1[1]), G1[2]};
 
   // p1 = pairing(G2, G1)
   // pn1 = pairing(G2, neg(G1))
   // assert p1 * pn1 == FQ12.one()
-  pairing(G2, G1, p1);
-  pairing(G2, neg_g1, pn1);
+  _pairing(G2, G1, p1);
+  _pairing(G2, neg_g1, pn1);
   fq12_mul(p1, pn1, tmp);
   if (!eq12(tmp, FQ12_ONE)) {
     return 1;
@@ -395,11 +393,12 @@ int test_pairing() {
   // np1 = pairing(neg(G2), G1)
   // assert p1 * np1 == FQ12.one()
   // assert pn1 == np1
-  uint256 neg_g2[2][2] = {};
+  uint256 neg_g2[3][2] = {};
   uint256 np1[12] = {};
   cp2(G2[0], neg_g2[0]);
   fq2_neg(G2[1], neg_g2[1]);
-  pairing(neg_g2, G1, np1);
+  cp2(G2[2], neg_g2[2]);
+  _pairing(neg_g2, G1, np1);
   fq12_mul(p1, np1, tmp);
   if (!eq12(tmp, FQ12_ONE)) {
     return 1;
@@ -414,10 +413,10 @@ int test_pairing() {
     return 1;
   }
 
-  uint256 g1_mul_2[2] = {};
+  uint256 g1_mul_2[3] = {};
   uint256 p2[12] = {};
   g1::mul(G1, 2, g1_mul_2);
-  pairing(G2, g1_mul_2, p2);
+  _pairing(G2, g1_mul_2, p2);
   fq12_mul(p1, p1, tmp);
   if (!eq12(tmp, p2)) {
     return 1;
@@ -428,25 +427,25 @@ int test_pairing() {
     return 1;
   }
 
-  uint256 g2_mul_2[2][2] = {};
+  uint256 g2_mul_2[3][2] = {};
   uint256 po2[12] = {};
   g2::mul(G2, 2, g2_mul_2);
-  pairing(g2_mul_2, G1, po2);
+  _pairing(g2_mul_2, G1, po2);
   fq12_mul(p1, p1, tmp);
   if (!eq12(tmp, po2)) {
     return 1;
   }
 
-  uint256 g2_mul_27[2][2] = {};
-  uint256 g1_mul_31[2] = {};
+  uint256 g2_mul_27[3][2] = {};
+  uint256 g1_mul_31[3] = {};
   uint256 p3[12] = {};
   g2::mul(G2, 27, g2_mul_27);
   g1::mul(G1, 37, g1_mul_31);
-  pairing(g2_mul_27, g1_mul_31, p3);
-  uint256 g1_mul_999[2] = {};
+  _pairing(g2_mul_27, g1_mul_31, p3);
+  uint256 g1_mul_999[3] = {};
   uint256 po3[12] = {};
   g1::mul(G1, 999, g1_mul_999);
-  pairing(G2, g1_mul_999, po3);
+  _pairing(G2, g1_mul_999, po3);
   if (!eq12(p3, po3)) {
     return 1;
   }
@@ -466,7 +465,7 @@ int test_misc() {
       "0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
   tmp[0][1][1] = intx::from_string<uint256>(
       "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
-  g2::mul(tmp[0], 0x2dddefa19, tmp[2]);
+  mul(tmp[0], 0x2dddefa19, tmp[2]);
   tmp[1][0][0] = intx::from_string<uint256>(
       "0x23997083c2c4409869ee3546806a544c8c16bc46cc88598c4e1c853eb81d45b0");
   tmp[1][0][1] = intx::from_string<uint256>(
