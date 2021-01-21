@@ -300,7 +300,7 @@ int test_linefunc() {
   uint256 two[3] = {};
   uint256 trd[3] = {};
   uint256 out[2] = {};
-  cp(G1, one, 3);
+  cp3(G1, one);
   g1::doubl2(G1, two);
   g1::mul(G1, 3, trd);
 
