@@ -20,25 +20,10 @@ inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
 }
 
-inline bool eq(const uint256* x, const uint256 *y, const int n) {
-  for (int i = 0; i < n; i++) {
-    if (x[i] != y[i]) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
   return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
          x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
          x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
-}
-
-inline void cp(const uint256* x, uint256 *r, const int n) {
-  for (int i = 0; i < n; i++) {
-    r[i] = x[i];
-  }
 }
 
 inline void cp2(const uint256 x[2], uint256 r[2]) {
@@ -85,7 +70,7 @@ inline uint256 _submod(const uint256 &x, const uint256 &y, const uint256 &n) {
 }
 
 inline uint256 _negmod(const uint256 &x, const uint256 &n) {
-  return _submod(n, x, n);
+  return n - x;
 }
 
 inline uint256 _mulmod(const uint256 &x, const uint256 &y, const uint256 &n) {
@@ -475,11 +460,11 @@ void doubl2(const uint256 pt[3], uint256 r[3]) {
 // Elliptic curve addition
 void add(const uint256 p1[3], const uint256 p2[3], uint256 r[3]) {
   if (p1[2] == 0) {
-    cp(p2, r, 3);
+    cp3(p2, r);
     return;
   }
   if (p2[2] == 0) {
-    cp(p1, r, 3);
+    cp3(p1, r);
     return;
   }
   uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
@@ -537,7 +522,7 @@ void mul(const uint256 pt[3], const uint256 &n, uint256 r[3]) {
     r[1] = 1;
     r[2] = 0;
   } else if (n == 1) {
-    cp(pt, r, 3);
+    cp3(pt, r);
   } else if (n & 1) {
     uint256 t[2][3];
     doubl2(pt, t[0]);
@@ -556,7 +541,7 @@ namespace g2 {
 
 // Check if a point is the point at infinity
 inline bool is_inf(const uint256 pt[3][2]) {
-  return eq(pt[2], FQ2_ZERO, 2);
+  return eq2(pt[2], FQ2_ZERO);
 }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
@@ -576,7 +561,7 @@ bool is_on_curve(const uint256 pt[3][2]) {
   fq2_mul(t[1], z, t[2]);
   fq2_mul(t[2], B2, t[1]);
 
-  return eq(t[0], t[1], 2);
+  return eq2(t[0], t[1]);
 }
 
 bool eq(const uint256 x[3][2], const uint256 y[3][2]) {
@@ -774,7 +759,7 @@ namespace g12 {
 
 // Check if a point is the point at infinity
 inline bool is_inf(const uint256 pt[3][12]) {
-  return eq(pt[2], FQ12_ZERO, 12);
+  return eq12(pt[2], FQ12_ZERO);
 }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
@@ -794,7 +779,7 @@ bool is_on_curve(const uint256 pt[3][12]) {
   fq12_mul(t[1], z, t[2]);
   fq12_mul(t[2], B12, t[1]);
 
-  return eq(t[0], t[1], 12);
+  return eq12(t[0], t[1]);
 }
 
 bool eq(const uint256 x[3][12], const uint256 y[3][12]) {
@@ -880,9 +865,9 @@ void add(const uint256 p1[3][12], const uint256 p2[3][12], uint256 r[3][12]) {
       return;
     }
 
-    cp(FQ12_ONE, r[0], 12);
-    cp(FQ12_ONE, r[1], 12);
-    cp(FQ12_ZERO, r[2], 12);
+    cp12(FQ12_ONE, r[0]);
+    cp12(FQ12_ONE, r[1]);
+    cp12(FQ12_ZERO, r[2]);
     return;
   }
 
