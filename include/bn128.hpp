@@ -20,15 +20,36 @@ inline bool eq2(const uint256 x[2], const uint256 y[2]) {
   return x[0] == y[0] && x[1] == y[1];
 }
 
+inline bool eq(const uint256* x, const uint256 *y, const int n) {
+  for (int i = 0; i < n; i++) {
+    if (x[i] != y[i]) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
   return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
          x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
          x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
 }
 
+inline void cp(const uint256* x, uint256 *r, const int n) {
+  for (int i = 0; i < n; i++) {
+    r[i] = x[i];
+  }
+}
+
 inline void cp2(const uint256 x[2], uint256 r[2]) {
   r[0] = x[0];
   r[1] = x[1];
+}
+
+inline void cp3(const uint256 x[3], uint256 r[3]) {
+  r[0] = x[0];
+  r[1] = x[1];
+  r[2] = x[2];
 }
 
 inline void cp12(const uint256 x[12], uint256 r[12]) {
@@ -366,9 +387,9 @@ constexpr uint256 B2[2] = {
 constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // Generator for curve over FQ
-constexpr uint256 G1[2] = {1, 2};
+constexpr uint256 G1[3] = {1, 2, 1};
 // Generator for twisted curve over FQ2
-constexpr uint256 G2[2][2] = {
+constexpr uint256 G2[3][2] = {
     {
         intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f"
                                    "75edadd46debd5cd992f6ed"),
@@ -380,12 +401,12 @@ constexpr uint256 G2[2][2] = {
                                    "c43d37b4ce6cc0166fa7daa"),
         intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
                                    "0b38ef355acdadcd122975b"),
-    }};
+    }, {1, 0}};
 
 // "Twist" a point in E(FQ2) into a point in E(FQ12)
 constexpr uint256 W[12] = {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-constexpr uint256 G12[2][12] = {
+constexpr uint256 G12[3][12] = {
     {0, 0,
      intx::from_string<uint256>(
          "0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"),
@@ -400,78 +421,132 @@ constexpr uint256 G12[2][12] = {
      intx::from_string<uint256>(
          "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"),
      0, 0},
+     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 namespace g1 {
 
-constexpr uint256 INF[2] = {-1, -1};
-
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[2]) { return eq2(pt, INF); }
+inline bool is_inf(const uint256 pt[3]) { return pt[2] == 0; }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b
-bool is_on_curve(const uint256 pt[2]) {
+bool is_on_curve(const uint256 pt[3]) {
   if (is_inf(pt)) {
     return true;
   }
-  uint256 l = fq_mul(pt[1], pt[1]);
-  uint256 r = fq_add(fq_mul(fq_mul(pt[0], pt[0]), pt[0]), B);
+  uint256 x = pt[0], y = pt[1], z = pt[2];
+  uint256 l = fq_sub(fq_mul(fq_mul(y, y), z), fq_mul(fq_mul(x, x), x));
+  uint256 r = fq_mul(B, fq_mul(fq_mul(z, z), z));
   return l == r;
 }
 
-void doubl2(const uint256 pt[2], uint256 r[2]) {
-  uint256 x = pt[0];
-  uint256 y = pt[1];
-  uint256 l = fq_div(fq_mul(fq_mul(x, x), 3), fq_mul(y, 2));
-  uint256 newx = fq_sub(fq_mul(l, l), fq_mul(x, 2));
-  uint256 newy =
-      fq_sub(fq_add(fq_mul(fq_sub(FIELD_MODULUS, l), newx), fq_mul(l, x)), y);
+bool eq(const uint256 x[3], const uint256 y[3]) {
+  uint256 x1 = x[0], y1 = x[1], z1 = x[2];
+  uint256 x2 = y[0], y2 = y[1], z2 = y[2];
+  return (fq_mul(x1, z2) == fq_mul(x2, z1)) && (fq_mul(y1, z2) == fq_mul(y2, z1));
+}
+
+void doubl2(const uint256 pt[3], uint256 r[3]) {
+  uint256 x = pt[0], y = pt[1], z = pt[2];
+
+  // W = 3 * x * x
+  uint256 W = fq_mul(fq_mul(3, x), x);
+  // S = y * z
+  uint256 S = fq_mul(y, z);
+  // B = x * y * S
+  uint256 B = fq_mul(fq_mul(x, y), S);
+  // H = W * W - 8 * B
+  uint256 H = fq_sub(fq_mul(W, W), fq_mul(8, B));
+  // S_squared = S * S
+  uint256 S_squared = fq_mul(S, S);
+  // newx = 2 * H * S
+  uint256 newx = fq_mul(2, fq_mul(H, S));
+  // newy = W * (4 * B - H) - 8 * y * y * S_squared
+  uint256 newy_l = fq_mul(W, fq_sub(fq_mul(4, B), H));
+  uint256 newy_r = fq_mul(fq_mul(fq_mul(8, y), y), S_squared);
+  uint256 newy = fq_sub(newy_l, newy_r);
+  // newz = 8 * S * S_squared
+  uint256 newz = fq_mul(fq_mul(8, S), S_squared);
   r[0] = newx;
   r[1] = newy;
+  r[2] = newz;
 }
 
 // Elliptic curve addition
-void add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
-  if (is_inf(p1)) {
-    r[0] = p2[0];
-    r[1] = p2[1];
-  } else if (is_inf(p2)) {
-    r[0] = p1[0];
-    r[1] = p1[1];
-  } else if (p2[0] == p1[0] && p2[1] == p1[1]) {
-    doubl2(p1, r);
-  } else if (p2[0] == p1[0]) {
-    r[0] = INF[0];
-    r[1] = INF[1];
-  } else {
-    uint256 l = fq_div(fq_sub(p2[1], p1[1]), fq_sub(p2[0], p1[0]));
-    uint256 newx = fq_sub(fq_sub(fq_mul(l, l), p1[0]), p2[0]);
-    uint256 newy =
-        fq_sub(fq_add(fq_mul(fq_neg(l), newx), fq_mul(l, p1[0])), p1[1]);
-    r[0] = newx;
-    r[1] = newy;
+void add(const uint256 p1[3], const uint256 p2[3], uint256 r[3]) {
+  if (p1[2] == 0) {
+    cp(p2, r, 3);
     return;
   }
+  if (p2[2] == 0) {
+    cp(p1, r, 3);
+    return;
+  }
+  uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
+  uint256 x2 = p2[0], y2 = p2[1], z2 = p2[2];
+  // U1 = y2 * z1
+  uint256 U1 = fq_mul(y2, z1);
+  // U2 = y1 * z2
+  uint256 U2 = fq_mul(y1, z2);
+  // V1 = x2 * z1
+  uint256 V1 = fq_mul(x2, z1);
+  // V2 = x1 * z2
+  uint256 V2 = fq_mul(x1, z2);
+
+  if (V1 == V2) {
+    if (U1 == U2) {
+      doubl2(p1, r);
+    } else {
+      r[0] = 1;
+      r[1] = 1;
+      r[2] = 0;
+    }
+    return;
+  }
+
+  // U = U1 - U2
+  uint256 U = fq_sub(U1, U2);
+  // V = V1 - V2
+  uint256 V = fq_sub(V1, V2);
+  // V_squared = V * V
+  uint256 V_squared = fq_mul(V, V);
+  // V_squared_times_V2 = V_squared * V2
+  uint256 V_squared_times_V2 = fq_mul(V_squared, V2);
+  // V_cubed = V * V_squared
+  uint256 V_cubed = fq_mul(V, V_squared);
+  // W = z1 * z2
+  uint256 W = fq_mul(z1, z2);
+  // A = U * U * W - V_cubed - 2 * V_squared_times_V2
+  uint256 A = fq_sub(fq_sub(fq_mul(fq_mul(U, U), W), V_cubed), fq_mul(2, V_squared_times_V2));
+  // newx = V * A
+  uint256 newx = fq_mul(V, A);
+  // newy = U * (V_squared_times_V2 - A) - V_cubed * U2
+  uint256 newy = fq_sub(fq_mul(U, fq_sub(V_squared_times_V2, A)), fq_mul(V_cubed, U2));
+  // newz = V_cubed * W
+  uint256 newz = fq_mul(V_cubed, W);
+
+  r[0] = newx;
+  r[1] = newy;
+  r[2] = newz;
 }
 
 // Elliptic curve point multiplication.
-void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
+void mul(const uint256 pt[3], const uint256 &n, uint256 r[3]) {
   if (n == 0) {
-    r[0] = INF[0];
-    r[1] = INF[1];
+    r[0] = 1;
+    r[1] = 1;
+    r[2] = 0;
   } else if (n == 1) {
-    r[0] = pt[0];
-    r[1] = pt[1];
-  } else if (n % 2 == 0) {
-    uint256 t[2];
+    cp(pt, r, 3);
+  } else if (n & 1) {
+    uint256 t[2][3];
+    doubl2(pt, t[0]);
+    mul(t[0], n >> 1, t[1]);
+    add(t[1], pt, r);
+  } else {
+    uint256 t[3];
     doubl2(pt, t);
     mul(t, n >> 1, r);
-  } else {
-    uint256 t1[2];
-    uint256 t2[2];
-    doubl2(pt, t1);
-    mul(t1, n >> 1, t2);
-    add(t2, pt, r);
   }
 }
 
@@ -479,269 +554,393 @@ void mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
 
 namespace g2 {
 
-constexpr uint256 INF[2][2] = {{-1, -1}, {-1, -1}};
-
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[2][2]) {
-  return eq2(pt[0], INF[0]) && eq2(pt[1], INF[1]);
+inline bool is_inf(const uint256 pt[3][2]) {
+  return eq(pt[2], FQ2_ZERO, 2);
 }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
-bool is_on_curve(const uint256 pt[2][2]) {
+bool is_on_curve(const uint256 pt[3][2]) {
   if (is_inf(pt)) {
     return true;
   }
+  auto x = pt[0], y = pt[1], z = pt[2];
+  uint256 t[3][2];
+  fq2_mul(y, y, t[0]);
+  fq2_mul(t[0], z, t[1]);
+  fq2_mul(x, x, t[0]);
+  fq2_mul(t[0], x, t[2]);
+  fq2_sub(t[1], t[2], t[0]);
+
+  fq2_mul(z, z, t[1]);
+  fq2_mul(t[1], z, t[2]);
+  fq2_mul(t[2], B2, t[1]);
+
+  return eq(t[0], t[1], 2);
+}
+
+bool eq(const uint256 x[3][2], const uint256 y[3][2]) {
+  auto x1 = x[0], y1 = x[1], z1 = x[2];
+  auto x2 = y[0], y2 = y[1], z2 = y[2];
   uint256 t[2][2];
-  fq2_mul(pt[1], pt[1], t[0]);
-  fq2_mul(pt[0], pt[0], t[1]);
-  fq2_mul(pt[0], t[1], t[1]);
-  fq2_add(t[1], B2, t[1]);
-  return eq2(t[0], t[1]);
-}
-
-void doubl2(const uint256 pt[2][2], uint256 r[2][2]) {
-  uint256 t[2];
-  uint256 newx[2];
-  uint256 newy[2];
-  uint256 l[2];
-
-  fq2_mul(pt[0], pt[0], l);
-  l[0] = fq_mul(3, l[0]);
-  l[1] = fq_mul(3, l[1]);
-  t[0] = fq_mul(2, pt[1][0]);
-  t[1] = fq_mul(2, pt[1][1]);
-  fq2_div(l, t, l);
-
-  fq2_mul(l, l, newx);
-  t[0] = fq_mul(2, pt[0][0]);
-  t[1] = fq_mul(2, pt[0][1]);
-  fq2_sub(newx, t, newx);
-
-  fq2_mul(l, pt[0], t);
-  fq2_sub(t, pt[1], t);
-  fq2_neg(l, newy);
-  fq2_mul(newy, newx, newy);
-  fq2_add(newy, t, newy);
-
-  r[0][0] = newx[0];
-  r[0][1] = newx[1];
-  r[1][0] = newy[0];
-  r[1][1] = newy[1];
-}
-
-void add(const uint256 p1[2][2], const uint256 p2[2][2], uint256 r[2][2]) {
-  if (is_inf(p1)) {
-    r[0][0] = p2[0][0];
-    r[0][1] = p2[0][1];
-    r[1][0] = p2[1][0];
-    r[1][1] = p2[1][1];
-  } else if (is_inf(p2)) {
-    r[0][0] = p1[0][0];
-    r[0][1] = p1[0][1];
-    r[1][0] = p1[1][0];
-    r[1][1] = p1[1][1];
-  } else if (eq2(p2[0], p1[0]) && eq2(p2[1], p1[1])) {
-    doubl2(p1, r);
-  } else if (eq2(p2[0], p1[0])) {
-    r[0][0] = INF[0][0];
-    r[0][1] = INF[0][1];
-    r[1][0] = INF[1][0];
-    r[1][1] = INF[1][1];
-  } else {
-    uint256 t[2];
-    uint256 l[2];
-    uint256 newx[2];
-    uint256 newy[2];
-    fq2_sub(p2[1], p1[1], l);
-    fq2_sub(p2[0], p1[0], t);
-    fq2_div(l, t, l);
-    fq2_mul(l, l, newx);
-    fq2_sub(newx, p1[0], newx);
-    fq2_sub(newx, p2[0], newx);
-    fq2_neg(l, newy);
-    fq2_mul(newy, newx, newy);
-    fq2_mul(l, p1[0], t);
-    fq2_add(newy, t, newy);
-    fq2_sub(newy, p1[1], newy);
-    r[0][0] = newx[0];
-    r[0][1] = newx[1];
-    r[1][0] = newy[0];
-    r[1][1] = newy[1];
+  fq2_mul(x1, z2, t[0]);
+  fq2_mul(x2, z1, t[1]);
+  if (!eq2(t[0], t[1])) {
+    return 0;
   }
+  fq2_mul(y1, z2, t[0]);
+  fq2_mul(y2, z1, t[1]);
+  if (!eq2(t[0], t[1])) {
+    return 0;
+  }
+  return 1;
+}
+
+void from_jacobian(const uint256 pt1[3][2], uint256 pt2[2][2]) {
+  uint256 invz[2];
+  fq2_inv(pt1[2], invz);
+  fq2_mul(pt1[0], invz, pt2[0]);
+  fq2_mul(pt1[1], invz, pt2[1]);
+}
+
+void doubl2(const uint256 pt[3][2], uint256 r[3][2]) {
+  uint256 temp1[3][2];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+      temp1[i][j] = pt[i][j];
+      r[i][j] = 0;
+    }
+  }
+  fq2_muc(temp1[0], 3, r[0]);
+  fq2_mul(r[0], temp1[0], r[0]);
+  fq2_mul(temp1[1], temp1[2], temp1[2]);
+  fq2_mul(temp1[0], temp1[1], r[1]);
+  fq2_mul(r[1], temp1[2], r[1]);
+  fq2_mul(r[0], r[0], temp1[0]);
+  fq2_muc(r[1], 8, r[2]);
+  fq2_sub(temp1[0], r[2], temp1[0]);
+  fq2_mul(temp1[2], temp1[2], r[2]);
+  fq2_muc(r[1], 4, r[1]);
+  fq2_sub(r[1], temp1[0], r[1]);
+  fq2_mul(r[1], r[0], r[1]);
+  fq2_muc(temp1[1], 8, r[0]);
+  fq2_mul(r[0], temp1[1], r[0]);
+  fq2_mul(r[0], r[2], r[0]);
+  fq2_sub(r[1], r[0], r[1]);
+  fq2_muc(temp1[0], 2, r[0]);
+  fq2_mul(r[0], temp1[2], r[0]);
+  fq2_mul(temp1[2], r[2], r[2]);
+  fq2_muc(r[2], 8, r[2]);
+}
+
+void add(const uint256 p1[3][2], const uint256 p2[3][2], uint256 r[3][2]) {
+
+  if (p1[2][0] == 0 && p1[2][1] == 0) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 2; j++) {
+        r[i][j] = p2[i][j];
+      }
+    }
+    return;
+  } else if (p2[2][0] == 0 && p2[2][1] == 0) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 2; j++) {
+        r[i][j] = p1[i][j];
+      }
+    }
+    return;
+  }
+
+  uint256 temp1[3][2], temp2[3][2];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+      temp1[i][j] = p1[i][j];
+      temp2[i][j] = p2[i][j];
+    }
+  }
+
+  fq2_mul(temp2[1], temp1[2], temp2[1]);
+  fq2_mul(temp1[1], temp2[2], r[1]);
+  fq2_mul(temp2[0], temp1[2], temp2[0]);
+  fq2_mul(temp1[0], temp2[2], r[2]);
+
+  if (temp2[0][0] == r[2][0] && temp2[0][1] == r[2][1]) {
+    if (temp2[1][0] == r[1][0] && temp2[1][1] == r[1][1]) {
+      doubl2(temp1, r);
+      return;
+    }
+
+    r[0][0] = 1;
+    r[0][1] = 0;
+    r[1][0] = 1;
+    r[1][1] = 0;
+    r[2][0] = 0;
+    r[2][1] = 0;
+    return;
+  }
+
+  // W = z1 * z2
+  fq2_mul(temp1[2], temp2[2], temp2[2]);
+  // U = U1 - U2
+  fq2_sub(temp2[1], r[1], temp1[0]);
+  // V = V1 - V2
+  fq2_sub(temp2[0], r[2], temp1[1]);
+  // V_squared = V * V
+  fq2_mul(temp1[1], temp1[1], temp1[2]);
+  // V_squared_times_V2 = V_squared * V2
+  fq2_mul(temp1[2], r[2], temp2[1]);
+  // V_cubed = V * V_squared
+  fq2_mul(temp1[2], temp1[1], temp1[2]);
+  // newz = V_cubed * W
+  fq2_mul(temp1[2], temp2[2], r[2]);
+  // U * U
+  fq2_mul(temp1[0], temp1[0], temp2[0]);
+  // U * U * W
+  fq2_mul(temp2[0], temp2[2], temp2[0]);
+  // U * U * U - V_cubed
+  fq2_sub(temp2[0], temp1[2], temp2[0]);
+  // 2 * V_squared_times_V2
+  fq2_muc(temp2[1], 2, temp2[2]);
+  // A = U * U * W - V_cubed - 2 * V_squared_times_V2
+  fq2_sub(temp2[0], temp2[2], temp2[0]);
+  // newx = V * A
+  fq2_mul(temp1[1], temp2[0], r[0]);
+  // V_squared_times_V2 - A
+  fq2_sub(temp2[1], temp2[0], temp1[1]);
+  // U * (V_squared_times_V2 - A)
+  fq2_mul(temp1[0], temp1[1], temp1[1]);
+  // V_cubed * U2
+  fq2_mul(temp1[2], r[1], temp1[0]);
+  // newy = U * (V_squared_times_V2 - A) - V_cubed * U2
+  fq2_sub(temp1[1], temp1[0], r[1]);
 }
 
 // Elliptic curve point multiplication.
-void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
+void mul(const uint256 pt[3][2], const uint256 &n, uint256 r[3][2]) {
   if (n == 0) {
-    r[0][0] = INF[0][0];
-    r[0][1] = INF[0][1];
-    r[1][0] = INF[1][0];
-    r[1][1] = INF[1][1];
+    r[0][0] = 1;
+    r[0][1] = 0;
+    r[1][0] = 1;
+    r[1][1] = 0;
+    r[1][0] = 0;
+    r[1][1] = 0;
   } else if (n == 1) {
     r[0][0] = pt[0][0];
     r[0][1] = pt[0][1];
     r[1][0] = pt[1][0];
     r[1][1] = pt[1][1];
-  } else if (n % 2 == 0) {
-    uint256 t[2][2];
-    doubl2(pt, t);
-    mul(t, n >> 1, r);
-  } else {
-    uint256 t[2][2][2];
+    r[2][0] = pt[2][0];
+    r[2][1] = pt[2][1];
+  } else if (n & 1) {
+    uint256 t[2][3][2];
     doubl2(pt, t[0]);
     mul(t[0], n >> 1, t[1]);
     add(t[1], pt, r);
+  } else {
+    uint256 t[3][2];
+    doubl2(pt, t);
+    mul(t, n >> 1, r);
   }
 }
 
 // Elliptic curve point multiplication.
-void twist(const uint256 pt[2][2], uint256 r[2][12]) {
-  if (is_inf(pt)) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = -1;
-      r[1][i] = -1;
-    }
-    return;
-  }
-  uint256 xcoeffs[2] = {fq_sub(pt[0][0], fq_mul(pt[0][1], 9)), pt[0][1]};
-  uint256 ycoeffs[2] = {fq_sub(pt[1][0], fq_mul(pt[1][1], 9)), pt[1][1]};
+void twist(const uint256 pt[3][2], uint256 r[3][12]) {
+  auto _x = pt[0], _y = pt[1], _z = pt[2];
+  uint256 xcoeffs[2] = {fq_sub(_x[0], fq_mul(_x[1], 9)), _x[1]};
+  uint256 ycoeffs[2] = {fq_sub(_y[0], fq_mul(_y[1], 9)), _y[1]};
+  uint256 zcoeffs[2] = {fq_sub(_z[0], fq_mul(_z[1], 9)), _z[1]};
+
+  uint256 x[2], y[2], z[2];
+  fq2_muc(_y, 9, x);
+  fq2_sub(_x, x, x);
+  cp2(_y, y);
+  cp2(_z, z);
+
   uint256 nx[12] = {xcoeffs[0], 0, 0, 0, 0, 0, xcoeffs[1], 0, 0, 0, 0, 0};
   uint256 ny[12] = {ycoeffs[0], 0, 0, 0, 0, 0, ycoeffs[1], 0, 0, 0, 0, 0};
+  uint256 nz[12] = {zcoeffs[0], 0, 0, 0, 0, 0, zcoeffs[1], 0, 0, 0, 0, 0};
 
-  uint256 t[2][12];
-  fq12_mul(W, W, t[0]);
-  fq12_mul(nx, t[0], t[1]);
-  for (int i = 0; i < 12; i++) {
-    r[0][i] = t[1][i];
-  }
-  fq12_pow(W, 3, t[0]);
-  fq12_mul(ny, t[0], t[1]);
-  for (int i = 0; i < 12; i++) {
-    r[1][i] = t[1][i];
-  }
+  fq12_mul(W, W, r[2]);
+  fq12_mul(nx, r[2], r[0]);
+  fq12_mul(W, W, r[1]);
+  fq12_mul(W, r[1], r[2]);
+  fq12_mul(ny, r[2], r[1]);
+  cp12(nz, r[2]);
 }
 
 } // namespace g2
 
 namespace g12 {
 
-constexpr uint256 INF[2][12] = {
-    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
-
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[2][12]) {
-  return eq12(pt[0], INF[0]) && eq12(pt[1], INF[1]);
+inline bool is_inf(const uint256 pt[3][12]) {
+  return eq(pt[2], FQ12_ZERO, 12);
 }
 
-// // Check that a point is on the curve defined by y**2 == x**3 + b.
-bool is_on_curve(const uint256 pt[2][12]) {
+// Check that a point is on the curve defined by y**2 == x**3 + b.
+bool is_on_curve(const uint256 pt[3][12]) {
   if (is_inf(pt)) {
     return true;
   }
+  auto x = pt[0], y = pt[1], z = pt[2];
+  uint256 t[3][12];
+  fq12_mul(y, y, t[0]);
+  fq12_mul(t[0], z, t[1]);
+  fq12_mul(x, x, t[0]);
+  fq12_mul(t[0], x, t[2]);
+  fq12_sub(t[1], t[2], t[0]);
+
+  fq12_mul(z, z, t[1]);
+  fq12_mul(t[1], z, t[2]);
+  fq12_mul(t[2], B12, t[1]);
+
+  return eq(t[0], t[1], 12);
+}
+
+bool eq(const uint256 x[3][12], const uint256 y[3][12]) {
+  auto x1 = x[0], y1 = x[1], z1 = x[2];
+  auto x2 = y[0], y2 = y[1], z2 = y[2];
   uint256 t[2][12];
-  fq12_mul(pt[1], pt[1], t[0]);
-  fq12_mul(pt[0], pt[0], t[1]);
-  fq12_mul(pt[0], t[1], t[1]);
-  fq12_add(t[1], B12, t[1]);
-  return eq12(t[0], t[1]);
+  fq12_mul(x1, z2, t[0]);
+  fq12_mul(x2, z1, t[1]);
+  if (!eq12(t[0], t[1])) {
+    return 0;
+  }
+  fq12_mul(y1, z2, t[0]);
+  fq12_mul(y2, z1, t[1]);
+  if (!eq12(t[0], t[1])) {
+    return 0;
+  }
+  return 1;
 }
 
-void doubl2(const uint256 pt[2][12], uint256 r[2][12]) {
-  uint256 t[12];
-  uint256 newx[12];
-  uint256 newy[12];
-  uint256 l[12];
-
-  fq12_mul(pt[0], pt[0], l);
-  for (int i = 0; i < 12; i++) {
-    l[i] = fq_mul(3, l[i]);
+void doubl2(const uint256 pt[3][12], uint256 r[3][12]) {
+  uint256 temp1[3][12];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 12; j++) {
+      temp1[i][j] = pt[i][j];
+      r[i][j] = 0;
+    }
   }
-  for (int i = 0; i < 12; i++) {
-    t[i] = fq_mul(2, pt[1][i]);
-  }
-  fq12_div(l, t, l);
-
-  fq12_mul(l, l, newx);
-  for (int i = 0; i < 12; i++) {
-    t[i] = fq_mul(2, pt[0][i]);
-  }
-  fq12_sub(newx, t, newx);
-
-  fq12_mul(l, pt[0], t);
-  fq12_sub(t, pt[1], t);
-  fq12_neg(l, newy);
-  fq12_mul(newy, newx, newy);
-  fq12_add(newy, t, newy);
-
-  for (int i = 0; i < 12; i++) {
-    r[0][i] = newx[i];
-    r[1][i] = newy[i];
-  }
+  fq12_muc(temp1[0], 3, r[0]);
+  fq12_mul(r[0], temp1[0], r[0]);
+  fq12_mul(temp1[1], temp1[2], temp1[2]);
+  fq12_mul(temp1[0], temp1[1], r[1]);
+  fq12_mul(r[1], temp1[2], r[1]);
+  fq12_mul(r[0], r[0], temp1[0]);
+  fq12_muc(r[1], 8, r[2]);
+  fq12_sub(temp1[0], r[2], temp1[0]);
+  fq12_mul(temp1[2], temp1[2], r[2]);
+  fq12_muc(r[1], 4, r[1]);
+  fq12_sub(r[1], temp1[0], r[1]);
+  fq12_mul(r[1], r[0], r[1]);
+  fq12_muc(temp1[1], 8, r[0]);
+  fq12_mul(r[0], temp1[1], r[0]);
+  fq12_mul(r[0], r[2], r[0]);
+  fq12_sub(r[1], r[0], r[1]);
+  fq12_muc(temp1[0], 2, r[0]);
+  fq12_mul(r[0], temp1[2], r[0]);
+  fq12_mul(temp1[2], r[2], r[2]);
+  fq12_muc(r[2], 8, r[2]);
 }
 
-void add(const uint256 p1[2][12], const uint256 p2[2][12], uint256 r[2][12]) {
+void add(const uint256 p1[3][12], const uint256 p2[3][12], uint256 r[3][12]) {
   if (is_inf(p1)) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = p2[0][i];
-      r[1][i] = p2[1][i];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 12; j++) {
+        r[i][j] = p2[i][j];
+      }
     }
+    return;
   } else if (is_inf(p2)) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = p1[0][i];
-      r[1][i] = p1[1][i];
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 2; j++) {
+        r[i][j] = p1[i][j];
+      }
     }
-  } else if (eq12(p2[0], p1[0]) && eq12(p2[1], p1[1])) {
-    doubl2(p1, r);
-  } else if (eq12(p2[0], p1[0])) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = INF[0][i];
-      r[1][i] = INF[1][i];
-    }
-  } else {
-    uint256 t[2][12];
-    uint256 l[12];
-    uint256 newx[12];
-    uint256 newy[12];
-    fq12_sub(p2[1], p1[1], t[0]);
-    fq12_sub(p2[0], p1[0], t[1]);
-    fq12_div(t[0], t[1], l);
-    fq12_mul(l, l, newx);
-    fq12_sub(newx, p1[0], newx);
-    fq12_sub(newx, p2[0], newx);
-    fq12_neg(l, newy);
-    fq12_mul(newy, newx, newy);
-    fq12_mul(l, p1[0], t[0]);
-    fq12_add(newy, t[0], newy);
-    fq12_sub(newy, p1[1], newy);
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = newx[i];
-      r[1][i] = newy[i];
+    return;
+  }
+
+  uint256 temp1[3][12], temp2[3][12];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 12; j++) {
+      temp1[i][j] = p1[i][j];
+      temp2[i][j] = p2[i][j];
     }
   }
+
+  fq12_mul(temp2[1], temp1[2], temp2[1]);
+  fq12_mul(temp1[1], temp2[2], r[1]);
+  fq12_mul(temp2[0], temp1[2], temp2[0]);
+  fq12_mul(temp1[0], temp2[2], r[2]);
+
+  if (eq12(temp2[0], r[2])) {
+    if (eq12(temp2[1],r[1])) {
+      doubl2(temp1, r);
+      return;
+    }
+
+    cp(FQ12_ONE, r[0], 12);
+    cp(FQ12_ONE, r[1], 12);
+    cp(FQ12_ZERO, r[2], 12);
+    return;
+  }
+
+  // W = z1 * z2
+  fq12_mul(temp1[2], temp2[2], temp2[2]);
+  // U = U1 - U2
+  fq12_sub(temp2[1], r[1], temp1[0]);
+  // V = V1 - V2
+  fq12_sub(temp2[0], r[2], temp1[1]);
+  // V_squared = V * V
+  fq12_mul(temp1[1], temp1[1], temp1[2]);
+  // V_squared_times_V2 = V_squared * V2
+  fq12_mul(temp1[2], r[2], temp2[1]);
+  // V_cubed = V * V_squared
+  fq12_mul(temp1[2], temp1[1], temp1[2]);
+  // newz = V_cubed * W
+  fq12_mul(temp1[2], temp2[2], r[2]);
+  // U * U
+  fq12_mul(temp1[0], temp1[0], temp2[0]);
+  // U * U * W
+  fq12_mul(temp2[0], temp2[2], temp2[0]);
+  // U * U * U - V_cubed
+  fq12_sub(temp2[0], temp1[2], temp2[0]);
+  // 2 * V_squared_times_V2
+  fq12_muc(temp2[1], 2, temp2[2]);
+  // A = U * U * W - V_cubed - 2 * V_squared_times_V2
+  fq12_sub(temp2[0], temp2[2], temp2[0]);
+  // newx = V * A
+  fq12_mul(temp1[1], temp2[0], r[0]);
+  // V_squared_times_V2 - A
+  fq12_sub(temp2[1], temp2[0], temp1[1]);
+  // U * (V_squared_times_V2 - A)
+  fq12_mul(temp1[0], temp1[1], temp1[1]);
+  // V_cubed * U2
+  fq12_mul(temp1[2], r[1], temp1[0]);
+  // newy = U * (V_squared_times_V2 - A) - V_cubed * U2
+  fq12_sub(temp1[1], temp1[0], r[1]);
 }
 
 // Elliptic curve point multiplication.
-void mul(const uint256 pt[2][12], const uint256 &n, uint256 r[2][12]) {
+void mul(const uint256 pt[3][12], const uint256 &n, uint256 r[3][12]) {
   if (n == 0) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = INF[0][i];
-      r[1][i] = INF[1][i];
-    }
+    cp12(FQ12_ONE, r[0]);
+    cp12(FQ12_ONE, r[1]);
+    cp12(FQ12_ZERO, r[2]);
   } else if (n == 1) {
-    for (int i = 0; i < 12; i++) {
-      r[0][i] = pt[0][i];
-      r[1][i] = pt[1][i];
-    }
-  } else if (n % 2 == 0) {
-    uint256 t[2][12];
-    doubl2(pt, t);
-    mul(t, n >> 1, r);
-  } else {
-    uint256 t[2][2][12];
+    cp12(pt[0], r[0]);
+    cp12(pt[1], r[1]);
+    cp12(pt[2], r[2]);
+  } else if (n & 1) {
+    uint256 t[2][3][12];
     doubl2(pt, t[0]);
     mul(t[0], n >> 1, t[1]);
     add(t[1], pt, r);
+  } else {
+    uint256 t[3][12];
+    doubl2(pt, t);
+    mul(t, n >> 1, r);
   }
 }
 
@@ -753,56 +952,85 @@ constexpr int LOG_ATE_LOOP_COUNT = 63;
 
 // Create a function representing the line between P1 and P2, and evaluate it at
 // T
-uint256 linefunc(const uint256 p1[2], const uint256 p2[2],
-                 const uint256 pt[2]) {
-  // No points-at-infinity allowed, sorry
-  assert(!(g1::is_inf(p1) || g1::is_inf(p2) || g1::is_inf(pt)));
-  uint256 x1 = p1[0], y1 = p1[1];
-  uint256 x2 = p2[0], y2 = p2[1];
-  uint256 xt = pt[0], yt = pt[1];
-  if (x1 != x2) {
-    uint256 m = fq_div(fq_sub(y2, y1), fq_sub(x2, x1));
-    return fq_sub(fq_mul(m, fq_sub(xt, x1)), fq_sub(yt, y1));
-  } else if (y1 == y2) {
-    uint256 m = fq_div(fq_mul(3, fq_mul(x1, x1)), fq_mul(2, y1));
-    return fq_sub(fq_mul(m, fq_sub(xt, x1)), fq_sub(yt, y1));
+void linefunc(const uint256 p1[3], const uint256 p2[3],
+                 const uint256 pt[3], uint256 r[2]) {
+  uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
+  uint256 x2 = p2[0], y2 = p2[1], z2 = p2[2];
+  uint256 xt = pt[0], yt = pt[1], zt = pt[2];
+
+  uint256 m_numerator = fq_sub(fq_mul(y2, z1), fq_mul(y1, z2));
+  uint256 m_denominator = fq_sub(fq_mul(x2, z1), fq_mul(x1, z2));
+
+  if (m_denominator != 0) {
+    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))), fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
+    r[1] = fq_mul(fq_mul(m_denominator, zt), z1);
+  } else if (m_numerator == 0) {
+    m_numerator = fq_mul(fq_mul(3, x1), x1);
+    m_denominator = fq_mul(fq_mul(2, y1), z1);
+    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))), fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
+    r[1] = fq_mul(fq_mul(m_denominator, zt), z1);
   } else {
-    return fq_sub(xt, x1);
+    r[0] = fq_sub(fq_mul(xt, z1), fq_mul(x1, zt));
+    r[1] = fq_mul(z1, zt);
   }
 }
 
 // Create a function representing the line between P1 and P2, and evaluate it at
 // T
-void linefunc12(const uint256 p1[2][12], const uint256 p2[2][12],
-                const uint256 pt[2][12], uint256 r[12]) {
-  // No points-at-infinity allowed, sorry
-  assert(!(g12::is_inf(p1) || g12::is_inf(p2) || g12::is_inf(pt)));
-  uint256 tmp[3][12] = {};
-  if (!eq12(p1[0], p2[0])) {
-    fq12_sub(p2[1], p1[1], tmp[0]);
-    fq12_sub(p2[0], p1[0], tmp[1]);
-    fq12_div(tmp[0], tmp[1], tmp[2]);
-    fq12_sub(pt[0], p1[0], tmp[1]);
-    fq12_mul(tmp[2], tmp[1], tmp[0]);
-    fq12_sub(pt[1], p1[1], tmp[1]);
-    fq12_sub(tmp[0], tmp[1], r);
-  } else if (eq12(p1[1], p2[1])) {
-    fq12_mul(p1[0], p1[0], tmp[0]);
-    for (int i = 0; i < 12; i++) {
-      tmp[0][i] = fq_mul(3, tmp[0][i]);
+void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12],
+                const uint256 pt[3][12], uint256 r[2][12]) {
+    auto x1 = p1[0], y1 = p1[1], z1 = p1[2];
+    auto x2 = p2[0], y2 = p2[1], z2 = p2[2];
+    auto xt = pt[0], yt = pt[1], zt = pt[2];
+    uint256 m_numerator[12] = {};
+    uint256 m_denominator[12] = {};
+    uint256 temp[4][12] = {};
+    fq12_mul(y2, z1, temp[0]);
+    fq12_mul(y1, z2, temp[1]);
+    fq12_sub(temp[0], temp[1], m_numerator);
+    fq12_mul(x2, z1, temp[0]);
+    fq12_mul(x1, z2, temp[1]);
+    fq12_sub(temp[0], temp[1], m_denominator);
+    if (!eq12(m_denominator, FQ12_ZERO)) {
+      fq12_mul(xt, z1, temp[0]);
+      fq12_mul(x1, zt, temp[1]);
+      fq12_sub(temp[0], temp[1], temp[2]);
+      fq12_mul(m_numerator, temp[2], temp[3]);
+      fq12_mul(yt, z1, temp[0]);
+      fq12_mul(y1, zt, temp[1]);
+      fq12_sub(temp[0], temp[1], temp[2]);
+      fq12_mul(m_denominator, temp[2], temp[0]);
+      fq12_sub(temp[3], temp[0], r[0]);
+      fq12_mul(zt, z1, temp[0]);
+      fq12_mul(temp[0], m_denominator, r[1]);
+    } else if (eq12(m_numerator, FQ12_ZERO)) {
+        fq12_mul(x1, x1, temp[0]);
+        fq12_muc(temp[0], 3, m_numerator);
+        fq12_mul(y1, z1, temp[0]);
+        fq12_muc(temp[0], 2, m_denominator);
+        fq12_mul(xt, z1, temp[0]);
+        fq12_mul(x1, zt, temp[1]);
+        fq12_sub(temp[0], temp[1], temp[2]);
+        fq12_mul(m_numerator, temp[2], temp[3]);
+        fq12_mul(yt, z1, temp[0]);
+        fq12_mul(y1, zt, temp[1]);
+        fq12_sub(temp[0], temp[1], temp[2]);
+        fq12_mul(m_denominator, temp[2], temp[0]);
+        fq12_sub(temp[3], temp[0], r[0]);
+        fq12_mul(zt, z1, temp[0]);
+        fq12_mul(temp[0], m_denominator, r[1]);
+    } else {
+      fq12_mul(xt, z1, temp[0]);
+      fq12_mul(x1, zt, temp[1]);
+      fq12_sub(temp[0], temp[1], r[0]);
+      fq12_mul(z1, zt, r[1]);
     }
-    for (int i = 0; i < 12; i++) {
-      tmp[1][i] = fq_mul(2, p1[1][i]);
-    }
-    fq12_div(tmp[0], tmp[1], tmp[2]);
-    fq12_sub(pt[0], p1[0], tmp[1]);
-    fq12_mul(tmp[2], tmp[1], tmp[0]);
-    fq12_sub(pt[1], p1[1], tmp[1]);
-    fq12_sub(tmp[0], tmp[1], r);
-  } else {
-    fq12_sub(pt[0], p1[0], r);
-  }
 }
+
+constexpr int PSEUDO_BINARY_ENCODING[65] = {0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0,
+                          0, 1, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 1, 1,
+                          1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
+                          1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, 1, 1};
 
 void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y,
                         uint256 r[12]) {
@@ -821,56 +1049,97 @@ void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y,
 }
 
 // Main miller loop
-void miller_loop(const uint256 q[2][12], const uint256 p[2][12],
-                 uint256 r[12]) {
-  if (g12::is_inf(q) || g12::is_inf(p)) {
+void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12]) {
+  if (g12::is_inf(Q) || g12::is_inf(P)) {
     cp12(FQ12_ONE, r);
     return;
   }
-  uint256 t[2][12] = {};
-  uint256 R[2][12] = {};
-  cp12(q[0], R[0]);
-  cp12(q[1], R[1]);
-  uint256 f[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  uint256 R[3][12] = {};
+  cp12(Q[0], R[0]);
+  cp12(Q[1], R[1]);
+  cp12(Q[2], R[2]);
+
+  uint256 f_num[12] = {};
+  uint256 f_den[12] = {};
+  cp12(FQ12_ONE, f_num);
+  cp12(FQ12_ONE, f_den);
+
+  uint256 nd1[2][12] = {};
+  uint256 nd2[2][12] = {};
+
+  uint256 temp[3][12] = {};
+
   for (int i = 63; i > -1; i--) {
-    linefunc12(R, R, p, t[0]);
-    fq12_mul(t[0], f, t[1]);
-    fq12_mul(t[1], f, t[0]);
-    cp12(t[0], f);
-    g12::doubl2(R, t);
-    cp12(t[0], R[0]);
-    cp12(t[1], R[1]);
-    if ((ATE_LOOP_COUNT & fq_pow(2, i)) != 0) {
-      linefunc12(R, q, p, t[0]);
-      fq12_mul(t[0], f, t[1]);
-      cp12(t[1], f);
-      g12::add(R, q, t);
-      cp12(t[0], R[0]);
-      cp12(t[1], R[1]);
+    int b = PSEUDO_BINARY_ENCODING[i];
+
+    linefunc12(R, R, P, nd1);
+    fq12_mul(f_num, f_num, nd2[0]);
+    fq12_mul(nd2[0], nd1[0], f_num);
+    fq12_mul(f_den, f_den, nd2[0]);
+    fq12_mul(nd2[0], nd1[1], f_den);
+
+    g12::doubl2(R, temp);
+    cp12(temp[0], R[0]);
+    cp12(temp[1], R[1]);
+    cp12(temp[2], R[2]);
+
+    if (b == 1) {
+      linefunc12(R, Q, P, nd1);
+
+      fq12_mul(f_num, nd1[0], nd2[0]);
+      cp12(nd2[0], f_num);
+
+      fq12_mul(f_den, nd1[1], nd2[0]);
+      cp12(nd2[0], f_den);
+
+      g12::add(R, Q, temp);
+      cp12(temp[0], R[0]);
+      cp12(temp[1], R[1]);
+      cp12(temp[2], R[2]);
+    } else if (b == -1) {
+      uint256 nQ[3][12] = {};
+      cp12(Q[0], nQ[0]);
+      fq12_neg(Q[1], nQ[1]);
+      cp12(Q[2], nQ[2]);
+
+      linefunc12(R, nQ, P, nd1);
+      fq12_mul(f_num, nd1[0], nd2[0]);
+      cp12(nd2[0], f_num);
+
+      fq12_mul(f_den, nd1[1], nd2[0]);
+      cp12(nd2[0], f_den);
+
+      g12::add(R, nQ, temp);
+      cp12(temp[0], R[0]);
+      cp12(temp[1], R[1]);
+      cp12(temp[2], R[2]);
     }
   }
-  g12::mul(q, ATE_LOOP_COUNT, t);
-  assert(eq12(R[0], t[0]) && eq12(R[1], t[1]));
 
-  uint256 Q1[2][12] = {};
-  fq12_pow(q[0], FIELD_MODULUS, Q1[0]);
-  fq12_pow(q[1], FIELD_MODULUS, Q1[1]);
-  assert(g12::is_on_curve(Q1));
-  uint256 nQ2[2][12] = {};
+  uint256 Q1[3][12] = {};
+  fq12_pow(Q[0], FIELD_MODULUS, Q1[0]);
+  fq12_pow(Q[1], FIELD_MODULUS, Q1[1]);
+  fq12_pow(Q[2], FIELD_MODULUS, Q1[2]);
+
+  uint256 nQ2[3][12] = {};
   fq12_pow(Q1[0], FIELD_MODULUS, nQ2[0]);
-  fq12_neg(Q1[1], t[0]);
-  fq12_pow(t[0], FIELD_MODULUS, nQ2[1]);
-  assert(g12::is_on_curve(nQ2));
+  fq12_pow(Q1[1], FIELD_MODULUS, nQ2[2]);
+  fq12_neg(nQ2[2], nQ2[1]);
+  fq12_pow(Q1[2], FIELD_MODULUS, nQ2[2]);
 
-  linefunc12(R, Q1, p, t[0]);
-  fq12_mul(f, t[0], t[1]);
-  cp12(t[1], f);
-  g12::add(R, Q1, t);
-  cp12(t[0], R[0]);
-  cp12(t[1], R[1]);
-  linefunc12(R, nQ2, p, t[0]);
-  fq12_mul(f, t[0], t[1]);
-  cp12(t[1], f);
+  linefunc12(R, Q1, P, nd1);
+  g12::add(R, Q1, temp);
+  cp12(temp[0], R[0]);
+  cp12(temp[1], R[1]);
+  cp12(temp[2], R[2]);
+
+  linefunc12(R, nQ2, P, nd2);
+  fq12_mul(f_den, nd1[1], temp[0]);
+  fq12_mul(temp[0], nd2[1], temp[1]);
+  fq12_div(nd2[0], temp[1], temp[0]);
+  fq12_mul(temp[0], nd1[0], temp[1]);
+  fq12_mul(temp[1], f_num, temp[0]);
 
   intx::uint<4096> n =
       (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
@@ -881,18 +1150,44 @@ void miller_loop(const uint256 q[2][12], const uint256 p[2][12],
            intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} -
        1) /
       intx::uint<4096>{CURVE_ORDER};
-  final_exponentiate(f, n, r);
+  final_exponentiate(temp[0], n, r);
 }
 
 // Pairing computation
-void pairing(const uint256 q[2][2], const uint256 p[2], uint256 r[12]) {
-  assert(g2::is_on_curve(q));
-  assert(g1::is_on_curve(p));
-  uint256 twist_q[2][12];
-  g2::twist(q, twist_q);
-  uint256 fq12_p[2][12] = {{p[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                           {p[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
-  miller_loop(twist_q, fq12_p, r);
+void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
+  if (g2::is_inf(Q) || g1::is_inf(P)) {
+    cp12(FQ12_ONE, r);
+    return;
+  }
+
+  uint256 twist_q[3][12];
+  g2::twist(Q, twist_q);
+  uint256 fq12_p[3][12] = {{P[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                           {P[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                           {P[2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                           };
+  _miller_loop(twist_q, fq12_p, r);
+}
+
+void add(const uint256 p1[2][2], const uint256 p2[2][2], uint256 r[2][2]) {
+  uint256 x[3][2] = {{p1[0][0], p1[0][1]}, {p1[1][0], p1[1][1]}, {1, 0}};
+  uint256 y[3][2] = {{p2[0][0], p2[0][1]}, {p2[1][0], p2[1][1]}, {1, 0}};
+  uint256 o[3][2] = {};
+  g2::add(x, y, o);
+  g2::from_jacobian(o, r);
+}
+
+void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
+  uint256 x[3][2] = {{pt[0][0], pt[0][1]}, {pt[1][0], pt[1][1]}, {1, 0}};
+  uint256 o[3][2] = {};
+  g2::mul(x, n, o);
+  g2::from_jacobian(o, r);
+}
+
+void pairing(const uint256 Q[2][2], const uint256 P[2], uint256 r[12]) {
+  uint256 x[3][2] = {{Q[0][0], Q[0][1]}, {Q[1][0], Q[1][1]}, {1, 0}};
+  uint256 y[3] = {P[0], P[1], 1};
+  _pairing(x, y, r);
 }
 
 } // namespace bn128
