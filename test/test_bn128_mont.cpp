@@ -32,10 +32,56 @@ int test_powmod() {
   return 0;
 }
 
+int test_constexpr() {
+  // R * R_PRIME % FIELD_MODULUS == 1
+  if (uint512(1, 0) * uint512(R_PRIME) % uint512(FIELD_MODULUS) != 1) {
+    return 1;
+  }
+  // -FIELD_MODULUS * FIELD_MODULUS_PRIME % R == 1
+  if ((uint512(1, 0) - uint512(FIELD_MODULUS)) * uint512(FIELD_MODULUS_PRIME) % uint512(1, 0) != 1) {
+    return 1;
+  }
+  return 0;
+}
+
+int test_mont_encode_decode() {
+  // Taking from https://github.com/paritytech/bn
+  uint256 a = mont_encode(1);
+  if (a != intx::from_string<uint256>("0xe0a77c19a07df2f666ea36f7879462c0a78eb28f5c70b3dd35d438dc58f0d9d")) {
+    return 1;
+  }
+  if (mont_decode(a) != 1) {
+    return 1;
+  }
+
+  uint256 b = mont_encode(42);
+  if (b != intx::from_string<uint256>("0x0903f860b6f71bd22a638bbbb1d55ed69dc595e76d525985dbc68430439c5c6e")) {
+    return 1;
+  }
+  if (mont_decode(b) != 42) {
+    return 1;
+  }
+
+  uint256 c = FIELD_MODULUS / 2 - 17;
+  uint256 d = mont_encode(c);
+  if (d != intx::from_string<uint256>("0x14707fbbcf072f27f529534d0bfd1a000a03b6d2f156954ed7d2e44ca56802cb")) {
+    return 1;
+  }
+  if (mont_decode(d) != c) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int main() {
   if (test_invmod())
     return 1;
   if (test_powmod())
+    return 1;
+  if (test_constexpr())
+    return 1;
+  if (test_mont_encode_decode())
     return 1;
   return 0;
 }

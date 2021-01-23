@@ -40,3 +40,25 @@ inline uint256 _invmod(const uint256 &x, const uint256 &n) {
     return c;
   }
 }
+
+
+// Montgomery reduction, also known as REDC.
+// REDC(T)=T*R' mod N(N>1)，
+uint256 REDC(uint256 T) {
+  uint512 t = intx::uint512{T};
+  uint512 n = intx::uint512{FIELE_MODULUS_PRIME};
+
+  uint512 m = T * n % ;
+
+  // uint256 a = T;
+  // for (int i = 0; i < 256; i++) {
+  //   if ((a & 1) == 1) {
+  //     a += FIELD_MODULUS;
+  //   }
+  //   a = a >> 1;
+  // }
+  // if (a >= FIELD_MODULUS) {
+  //   a -= FIELD_MODULUS;
+  // }
+  // return a;
+}
