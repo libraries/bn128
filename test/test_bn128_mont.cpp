@@ -74,6 +74,28 @@ int test_mont_encode_decode() {
   return 0;
 }
 
+int test_fq_inv() {
+  uint256 a = mont_encode(10);
+  uint256 b = fq_inv(a);
+  // a = 0x2ba010aa41eb77868fb1d6edb1ba0cfd39b65a76c8e2db4fc9638b5c069c8d94
+  // b = 0x0febf04f6c8facc474bcbedb7fb2ee53ae7fb77c84b60ab08d93172ea1809a25
+  if (b != intx::from_string<uint256>("0x0febf04f6c8facc474bcbedb7fb2ee53ae7fb77c84b60ab08d93172ea1809a25")) {
+    return 1;
+  }
+  return 0;
+}
+
+int test_fq_neg() {
+  uint256 a = mont_encode(42);
+  uint256 b = fq_neg(a);
+  // a = 0x0903f860b6f71bd22a638bbbb1d55ed69dc595e76d525985dbc68430439c5c6e
+  // b = 0x276056122a3a84578decb9facfabf986f9bbd4a9fb1f7107605a07e694e0a0d9
+  if (b != intx::from_string<uint256>("0x276056122a3a84578decb9facfabf986f9bbd4a9fb1f7107605a07e694e0a0d9")) {
+    return 1;
+  }
+  return 0;
+}
+
 int main() {
   if (test_invmod())
     return 1;
@@ -82,6 +104,10 @@ int main() {
   if (test_constexpr())
     return 1;
   if (test_mont_encode_decode())
+    return 1;
+  if (test_fq_inv())
+    return 1;
+  if (test_fq_neg())
     return 1;
   return 0;
 }
