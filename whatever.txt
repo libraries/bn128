@@ -62,3 +62,18 @@ uint256 REDC(uint256 T) {
   // }
   // return a;
 }
+
+
+void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
+  // uint256 aa = fq_mul(x[0], y[0]);
+  // uint256 bb = fq_mul(x[1], y[1]);
+  // uint256 non_residue =
+  //     mont_encode(intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd46"));
+  // uint256 c0 = fq_add(fq_mul(bb, non_residue), aa);
+  // uint256 c1 = fq_sub(fq_sub(fq_mul(fq_add(x[0], x[1]), fq_add(y[0], y[1])), aa), bb);
+
+  uint256 a = fq_sub(fq_mul(x[0], y[0]), fq_mul(x[1], y[1]));
+  uint256 b = fq_add(fq_mul(x[0], y[1]), fq_mul(x[1], y[0]));
+  r[0] = a;
+  r[1] = b;
+}

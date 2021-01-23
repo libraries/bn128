@@ -96,6 +96,27 @@ int test_fq_neg() {
   return 0;
 }
 
+int test_fq2_mul() {
+  uint256 a[2] = {
+      intx::from_string<uint256>("0x0010b52d9fe70d08c967a97deeb9eb186da14c608196f376d63ca9589ca5990e"),
+      intx::from_string<uint256>("0x2f682d1f7dda8678b0d017978b3067b74807a5d49d2a41739659c6600a8bf018"),
+  };
+  uint256 b[2] = {
+      intx::from_string<uint256>("0x19015293267c8307ffb557fd4ad6052cc22e04f121f21da65bbe2a733c22c53d"),
+      intx::from_string<uint256>("0x0e2bf3144f8ca0808b1dfce33c2240c641ff2f7b8f2ca8c185201c5edcc67040"),
+  };
+  uint256 c[2] = {};
+  fq2_mul(a, b, c);
+  if (c[0] != intx::from_string<uint256>("0x1a458f1555acd5430609a64acd087c155541125d671ced7f65dcb5a4e48e7d6d")) {
+    return 1;
+  }
+  if (c[1] != intx::from_string<uint256>("0x8a9a40e08f6e1ee5c2997247f30e5d49235ef40a999734c3ae55e9726f7f1c8")) {
+    return 1;
+  }
+
+  return 0;
+}
+
 int main() {
   if (test_invmod())
     return 1;
@@ -108,6 +129,8 @@ int main() {
   if (test_fq_inv())
     return 1;
   if (test_fq_neg())
+    return 1;
+  if (test_fq2_mul())
     return 1;
   return 0;
 }

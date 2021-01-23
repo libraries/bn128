@@ -102,6 +102,47 @@ inline uint256 fq_inv(const uint256 &x) { return fq_mul(_invmod(x, FIELD_MODULUS
 
 inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
+// FQ_NON_RESIDUE = mont_encode(FIELD_MODULUS - 1);
+#define FQ_NON_RESIDUE_HEX "0x2259d6b14729c0fa51e1a247090812318d087f6872aabf4f68c3488912edefaa"
+constexpr uint256 FQ_NON_RESIDUE = intx::from_string<uint256>(FQ_NON_RESIDUE_HEX);
+
+inline void fq2_add(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
+  uint256 a = fq_add(x[0], y[0]);
+  uint256 b = fq_add(x[1], y[1]);
+  r[0] = a;
+  r[1] = b;
+}
+
+inline void fq2_sub(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
+  uint256 a = fq_sub(x[0], y[0]);
+  uint256 b = fq_sub(x[1], y[1]);
+  r[0] = a;
+  r[1] = b;
+}
+
+void fq2_neg(const uint256 x[2], uint256 r[2]) {
+  uint256 a = fq_neg(x[0]);
+  uint256 b = fq_neg(x[1]);
+  r[0] = a;
+  r[1] = b;
+}
+
+void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
+  uint256 aa = fq_mul(x[0], y[0]);
+  uint256 bb = fq_mul(x[1], y[1]);
+  uint256 c0 = fq_add(fq_mul(bb, FQ_NON_RESIDUE), aa);
+  uint256 c1 = fq_sub(fq_sub(fq_mul(fq_add(x[0], x[1]), fq_add(y[0], y[1])), aa), bb);
+  r[0] = c0;
+  r[1] = c1;
+}
+
+void fq2_muc(const uint256 x[2], const uint256 &c, uint256 r[2]) {
+  uint256 a = fq_mul(x[0], c);
+  uint256 b = fq_mul(x[1], c);
+  r[0] = a;
+  r[1] = b;
+}
+
 } // namespace bn128
 
 #endif /* BN128_H_ */
