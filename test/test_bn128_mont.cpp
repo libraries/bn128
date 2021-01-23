@@ -24,8 +24,18 @@ int test_invmod() {
   return 0;
 }
 
+int test_powmod() {
+  uint256 r = _powmod(2, 10, FIELD_MODULUS);
+  if (r != 1024) {
+    return 1;
+  }
+  return 0;
+}
+
 int main() {
   if (test_invmod())
+    return 1;
+  if (test_powmod())
     return 1;
   return 0;
 }
