@@ -120,14 +120,14 @@ inline void fq2_sub(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   r[1] = b;
 }
 
-void fq2_neg(const uint256 x[2], uint256 r[2]) {
+inline void fq2_neg(const uint256 x[2], uint256 r[2]) {
   uint256 a = fq_neg(x[0]);
   uint256 b = fq_neg(x[1]);
   r[0] = a;
   r[1] = b;
 }
 
-void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
+inline void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   uint256 aa = fq_mul(x[0], y[0]);
   uint256 bb = fq_mul(x[1], y[1]);
   uint256 c0 = fq_add(fq_mul(bb, FQ_NON_RESIDUE), aa);
@@ -136,17 +136,26 @@ void fq2_mul(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   r[1] = c1;
 }
 
-void fq2_muc(const uint256 x[2], const uint256 &c, uint256 r[2]) {
+inline void fq2_muc(const uint256 x[2], const uint256 &c, uint256 r[2]) {
   uint256 a = fq_mul(x[0], c);
   uint256 b = fq_mul(x[1], c);
   r[0] = a;
   r[1] = b;
 }
 
-void fq2_inv(const uint256 x[2], uint256 r[2]) {
+inline void fq2_inv(const uint256 x[2], uint256 r[2]) {
   uint256 t = fq_inv(fq_sub(fq_mul(x[0], x[0]), fq_mul(fq_mul(x[1], x[1]), FQ_NON_RESIDUE)));
   r[0] = fq_mul(x[0], t);
   r[1] = fq_neg(fq_mul(x[1], t));
+}
+
+void fq2_squ(const uint256 x[2], uint256 r[2]) {
+  uint256 a = fq_mul(x[0], x[1]);
+  uint256 b = fq_mul(fq_add(fq_mul(x[1], FQ_NON_RESIDUE), x[0]), fq_add(x[0], x[1]));
+  uint256 c = fq_sub(fq_sub(b, a), fq_mul(a, FQ_NON_RESIDUE));
+  uint256 d = fq_add(a, a);
+  r[0] = c;
+  r[1] = d;
 }
 
 } // namespace bn128
