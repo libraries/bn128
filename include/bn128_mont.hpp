@@ -143,6 +143,12 @@ void fq2_muc(const uint256 x[2], const uint256 &c, uint256 r[2]) {
   r[1] = b;
 }
 
+void fq2_inv(const uint256 x[2], uint256 r[2]) {
+  uint256 t = fq_inv(fq_sub(fq_mul(x[0], x[0]), fq_mul(fq_mul(x[1], x[1]), FQ_NON_RESIDUE)));
+  r[0] = fq_mul(x[0], t);
+  r[1] = fq_neg(fq_mul(x[1], t));
+}
+
 } // namespace bn128
 
 #endif /* BN128_H_ */
