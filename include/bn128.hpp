@@ -5,25 +5,21 @@
 
 namespace bn128 {
 
-// Maybe there is a better way to implement this macro, but this is enough for
-// now.
+// Maybe there is a better way to implement this macro, but this is enough for now.
 #ifdef __riscv
 #undef assert
-#define assert(x)                                                              \
-  if (!x)                                                                      \
+#define assert(x)                                                                                                      \
+  if (!x)                                                                                                              \
   exit(2)
 #endif
 
 using uint256 = intx::uint256;
 
-inline bool eq2(const uint256 x[2], const uint256 y[2]) {
-  return x[0] == y[0] && x[1] == y[1];
-}
+inline bool eq2(const uint256 x[2], const uint256 y[2]) { return x[0] == y[0] && x[1] == y[1]; }
 
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
-  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] &&
-         x[4] == y[4] && x[5] == y[5] && x[6] == y[6] && x[7] == y[7] &&
-         x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
+  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] && x[4] == y[4] && x[5] == y[5] && x[6] == y[6] &&
+         x[7] == y[7] && x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
 }
 
 inline void cp2(const uint256 x[2], uint256 r[2]) {
@@ -58,24 +54,16 @@ inline void cp13(const uint256 x[13], uint256 r[13]) {
 }
 
 // The prime modulus of the field.
-constexpr uint256 FIELD_MODULUS = intx::from_string<uint256>(
-    "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
+constexpr uint256 FIELD_MODULUS =
+    intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
 
-inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return intx::addmod(x, y, n);
-}
+inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::addmod(x, y, n); }
 
-inline uint256 _submod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return _addmod(x, n - y, n);
-}
+inline uint256 _submod(const uint256 &x, const uint256 &y, const uint256 &n) { return _addmod(x, n - y, n); }
 
-inline uint256 _negmod(const uint256 &x, const uint256 &n) {
-  return n - x;
-}
+inline uint256 _negmod(const uint256 &x, const uint256 &n) { return n - x; }
 
-inline uint256 _mulmod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return intx::mulmod(x, y, n);
-}
+inline uint256 _mulmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::mulmod(x, y, n); }
 
 // Extended euclidean algorithm to find modular inverses for integers.
 inline uint256 _invmod(const uint256 &x, const uint256 &n) {
@@ -95,9 +83,7 @@ inline uint256 _invmod(const uint256 &x, const uint256 &n) {
   return t;
 }
 
-inline uint256 _divmod(const uint256 &x, const uint256 &y, const uint256 &n) {
-  return _mulmod(x, _invmod(y, FIELD_MODULUS), FIELD_MODULUS);
-}
+inline uint256 _divmod(const uint256 &x, const uint256 &y, const uint256 &n) { return _mulmod(x, _invmod(y, n), n); }
 
 inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
   if (y == 0) {
@@ -111,29 +97,19 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
   }
 }
 
-inline uint256 fq_add(const uint256 &x, const uint256 &y) {
-  return _addmod(x, y, FIELD_MODULUS);
-}
+inline uint256 fq_add(const uint256 &x, const uint256 &y) { return _addmod(x, y, FIELD_MODULUS); }
 
-inline uint256 fq_sub(const uint256 &x, const uint256 &y) {
-  return _submod(x, y, FIELD_MODULUS);
-}
+inline uint256 fq_sub(const uint256 &x, const uint256 &y) { return _submod(x, y, FIELD_MODULUS); }
 
 inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
-inline uint256 fq_mul(const uint256 &x, const uint256 &y) {
-  return _mulmod(x, y, FIELD_MODULUS);
-}
+inline uint256 fq_mul(const uint256 &x, const uint256 &y) { return _mulmod(x, y, FIELD_MODULUS); }
 
 inline uint256 fq_inv(const uint256 &x) { return _invmod(x, FIELD_MODULUS); }
 
-inline uint256 fq_div(const uint256 &x, const uint256 &y) {
-  return _divmod(x, y, FIELD_MODULUS);
-}
+inline uint256 fq_div(const uint256 &x, const uint256 &y) { return _divmod(x, y, FIELD_MODULUS); }
 
-inline uint256 fq_pow(const uint256 &x, const uint256 &y) {
-  return _powmod(x, y, FIELD_MODULUS);
-}
+inline uint256 fq_pow(const uint256 &x, const uint256 &y) { return _powmod(x, y, FIELD_MODULUS); }
 
 // The quadratic extension field.
 constexpr uint256 FQ2_ONE[2] = {1, 0};
@@ -216,8 +192,7 @@ constexpr uint256 FQ12_ONE[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 constexpr uint256 FQ12_ZERO[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // The modulus of the polynomial in this representation of FQ12.
-constexpr uint256 FQ12_MODULUS_COEFFS[12] = {
-    82, 0, 0, 0, 0, 0, FIELD_MODULUS - 18, 0, 0, 0, 0, 0};
+constexpr uint256 FQ12_MODULUS_COEFFS[12] = {82, 0, 0, 0, 0, 0, FIELD_MODULUS - 18, 0, 0, 0, 0, 0};
 
 void fq12_add(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
   for (int i = 0; i < 12; i++) {
@@ -272,8 +247,7 @@ int _deg(const uint256 p[13]) {
   return d;
 }
 
-void _poly_rounded_div(const uint256 a[13], const uint256 b[13],
-                       uint256 r[13]) {
+void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) {
   int dega = _deg(a);
   int degb = _deg(b);
   uint256 t[13] = {};
@@ -357,16 +331,14 @@ void fq12_pow(const uint256 x[12], const uint256 &y, uint256 r[12]) {
   }
 }
 
-constexpr uint256 CURVE_ORDER = intx::from_string<uint256>(
-    "0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001");
+constexpr uint256 CURVE_ORDER =
+    intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001");
 // Curve is y**2 = x**3 + 3
 constexpr uint256 B = 3;
 // Twisted curve over FQ**2
 constexpr uint256 B2[2] = {
-    intx::from_string<uint256>(
-        "0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
-    intx::from_string<uint256>(
-        "0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
+    intx::from_string<uint256>("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
+    intx::from_string<uint256>("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
 };
 // Extension curve over FQ**12; same b value as over FQ
 constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -374,39 +346,29 @@ constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 // Generator for curve over FQ
 constexpr uint256 G1[3] = {1, 2, 1};
 // Generator for twisted curve over FQ2
-constexpr uint256 G2[3][2] = {
-    {
-        intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f"
-                                   "75edadd46debd5cd992f6ed"),
-        intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa49333"
-                                   "5a9e71297e485b7aef312c2"),
-    },
-    {
-        intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690"
-                                   "c43d37b4ce6cc0166fa7daa"),
-        intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
-                                   "0b38ef355acdadcd122975b"),
-    }, {1, 0}};
+constexpr uint256 G2[3][2] = {{
+                                  intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f"
+                                                             "75edadd46debd5cd992f6ed"),
+                                  intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa49333"
+                                                             "5a9e71297e485b7aef312c2"),
+                              },
+                              {
+                                  intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690"
+                                                             "c43d37b4ce6cc0166fa7daa"),
+                                  intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
+                                                             "0b38ef355acdadcd122975b"),
+                              },
+                              {1, 0}};
 
 // "Twist" a point in E(FQ2) into a point in E(FQ12)
 constexpr uint256 W[12] = {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 constexpr uint256 G12[3][12] = {
-    {0, 0,
-     intx::from_string<uint256>(
-         "0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"),
-     0, 0, 0, 0, 0,
-     intx::from_string<uint256>(
-         "0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"),
-     0, 0, 0},
-    {0, 0, 0,
-     intx::from_string<uint256>(
-         "0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"),
-     0, 0, 0, 0, 0,
-     intx::from_string<uint256>(
-         "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"),
-     0, 0},
-     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0,
+     0, intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
+    {0, 0, 0, intx::from_string<uint256>("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0,
+     0, 0, intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
 namespace g1 {
@@ -540,9 +502,7 @@ void mul(const uint256 pt[3], const uint256 &n, uint256 r[3]) {
 namespace g2 {
 
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[3][2]) {
-  return eq2(pt[2], FQ2_ZERO);
-}
+inline bool is_inf(const uint256 pt[3][2]) { return eq2(pt[2], FQ2_ZERO); }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[3][2]) {
@@ -758,9 +718,7 @@ void twist(const uint256 pt[3][2], uint256 r[3][12]) {
 namespace g12 {
 
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[3][12]) {
-  return eq12(pt[2], FQ12_ZERO);
-}
+inline bool is_inf(const uint256 pt[3][12]) { return eq12(pt[2], FQ12_ZERO); }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[3][12]) {
@@ -860,7 +818,7 @@ void add(const uint256 p1[3][12], const uint256 p2[3][12], uint256 r[3][12]) {
   fq12_mul(temp1[0], temp2[2], r[2]);
 
   if (eq12(temp2[0], r[2])) {
-    if (eq12(temp2[1],r[1])) {
+    if (eq12(temp2[1], r[1])) {
       doubl2(temp1, r);
       return;
     }
@@ -931,14 +889,12 @@ void mul(const uint256 pt[3][12], const uint256 &n, uint256 r[3][12]) {
 
 } // namespace g12
 
-constexpr uint256 ATE_LOOP_COUNT =
-    intx::from_string<uint256>("0x19d797039be763ba8");
+constexpr uint256 ATE_LOOP_COUNT = intx::from_string<uint256>("0x19d797039be763ba8");
 constexpr int LOG_ATE_LOOP_COUNT = 63;
 
 // Create a function representing the line between P1 and P2, and evaluate it at
 // T
-void linefunc(const uint256 p1[3], const uint256 p2[3],
-                 const uint256 pt[3], uint256 r[2]) {
+void linefunc(const uint256 p1[3], const uint256 p2[3], const uint256 pt[3], uint256 r[2]) {
   uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
   uint256 x2 = p2[0], y2 = p2[1], z2 = p2[2];
   uint256 xt = pt[0], yt = pt[1], zt = pt[2];
@@ -947,12 +903,14 @@ void linefunc(const uint256 p1[3], const uint256 p2[3],
   uint256 m_denominator = fq_sub(fq_mul(x2, z1), fq_mul(x1, z2));
 
   if (m_denominator != 0) {
-    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))), fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
+    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))),
+                  fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
     r[1] = fq_mul(fq_mul(m_denominator, zt), z1);
   } else if (m_numerator == 0) {
     m_numerator = fq_mul(fq_mul(3, x1), x1);
     m_denominator = fq_mul(fq_mul(2, y1), z1);
-    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))), fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
+    r[0] = fq_sub(fq_mul(m_numerator, fq_sub(fq_mul(xt, z1), fq_mul(x1, zt))),
+                  fq_mul(m_denominator, fq_sub(fq_mul(yt, z1), fq_mul(y1, zt))));
     r[1] = fq_mul(fq_mul(m_denominator, zt), z1);
   } else {
     r[0] = fq_sub(fq_mul(xt, z1), fq_mul(x1, zt));
@@ -962,63 +920,60 @@ void linefunc(const uint256 p1[3], const uint256 p2[3],
 
 // Create a function representing the line between P1 and P2, and evaluate it at
 // T
-void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12],
-                const uint256 pt[3][12], uint256 r[2][12]) {
-    auto x1 = p1[0], y1 = p1[1], z1 = p1[2];
-    auto x2 = p2[0], y2 = p2[1], z2 = p2[2];
-    auto xt = pt[0], yt = pt[1], zt = pt[2];
-    uint256 m_numerator[12] = {};
-    uint256 m_denominator[12] = {};
-    uint256 temp[4][12] = {};
-    fq12_mul(y2, z1, temp[0]);
-    fq12_mul(y1, z2, temp[1]);
-    fq12_sub(temp[0], temp[1], m_numerator);
-    fq12_mul(x2, z1, temp[0]);
-    fq12_mul(x1, z2, temp[1]);
-    fq12_sub(temp[0], temp[1], m_denominator);
-    if (!eq12(m_denominator, FQ12_ZERO)) {
-      fq12_mul(xt, z1, temp[0]);
-      fq12_mul(x1, zt, temp[1]);
-      fq12_sub(temp[0], temp[1], temp[2]);
-      fq12_mul(m_numerator, temp[2], temp[3]);
-      fq12_mul(yt, z1, temp[0]);
-      fq12_mul(y1, zt, temp[1]);
-      fq12_sub(temp[0], temp[1], temp[2]);
-      fq12_mul(m_denominator, temp[2], temp[0]);
-      fq12_sub(temp[3], temp[0], r[0]);
-      fq12_mul(zt, z1, temp[0]);
-      fq12_mul(temp[0], m_denominator, r[1]);
-    } else if (eq12(m_numerator, FQ12_ZERO)) {
-        fq12_mul(x1, x1, temp[0]);
-        fq12_muc(temp[0], 3, m_numerator);
-        fq12_mul(y1, z1, temp[0]);
-        fq12_muc(temp[0], 2, m_denominator);
-        fq12_mul(xt, z1, temp[0]);
-        fq12_mul(x1, zt, temp[1]);
-        fq12_sub(temp[0], temp[1], temp[2]);
-        fq12_mul(m_numerator, temp[2], temp[3]);
-        fq12_mul(yt, z1, temp[0]);
-        fq12_mul(y1, zt, temp[1]);
-        fq12_sub(temp[0], temp[1], temp[2]);
-        fq12_mul(m_denominator, temp[2], temp[0]);
-        fq12_sub(temp[3], temp[0], r[0]);
-        fq12_mul(zt, z1, temp[0]);
-        fq12_mul(temp[0], m_denominator, r[1]);
-    } else {
-      fq12_mul(xt, z1, temp[0]);
-      fq12_mul(x1, zt, temp[1]);
-      fq12_sub(temp[0], temp[1], r[0]);
-      fq12_mul(z1, zt, r[1]);
-    }
+void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12], const uint256 pt[3][12], uint256 r[2][12]) {
+  auto x1 = p1[0], y1 = p1[1], z1 = p1[2];
+  auto x2 = p2[0], y2 = p2[1], z2 = p2[2];
+  auto xt = pt[0], yt = pt[1], zt = pt[2];
+  uint256 m_numerator[12] = {};
+  uint256 m_denominator[12] = {};
+  uint256 temp[4][12] = {};
+  fq12_mul(y2, z1, temp[0]);
+  fq12_mul(y1, z2, temp[1]);
+  fq12_sub(temp[0], temp[1], m_numerator);
+  fq12_mul(x2, z1, temp[0]);
+  fq12_mul(x1, z2, temp[1]);
+  fq12_sub(temp[0], temp[1], m_denominator);
+  if (!eq12(m_denominator, FQ12_ZERO)) {
+    fq12_mul(xt, z1, temp[0]);
+    fq12_mul(x1, zt, temp[1]);
+    fq12_sub(temp[0], temp[1], temp[2]);
+    fq12_mul(m_numerator, temp[2], temp[3]);
+    fq12_mul(yt, z1, temp[0]);
+    fq12_mul(y1, zt, temp[1]);
+    fq12_sub(temp[0], temp[1], temp[2]);
+    fq12_mul(m_denominator, temp[2], temp[0]);
+    fq12_sub(temp[3], temp[0], r[0]);
+    fq12_mul(zt, z1, temp[0]);
+    fq12_mul(temp[0], m_denominator, r[1]);
+  } else if (eq12(m_numerator, FQ12_ZERO)) {
+    fq12_mul(x1, x1, temp[0]);
+    fq12_muc(temp[0], 3, m_numerator);
+    fq12_mul(y1, z1, temp[0]);
+    fq12_muc(temp[0], 2, m_denominator);
+    fq12_mul(xt, z1, temp[0]);
+    fq12_mul(x1, zt, temp[1]);
+    fq12_sub(temp[0], temp[1], temp[2]);
+    fq12_mul(m_numerator, temp[2], temp[3]);
+    fq12_mul(yt, z1, temp[0]);
+    fq12_mul(y1, zt, temp[1]);
+    fq12_sub(temp[0], temp[1], temp[2]);
+    fq12_mul(m_denominator, temp[2], temp[0]);
+    fq12_sub(temp[3], temp[0], r[0]);
+    fq12_mul(zt, z1, temp[0]);
+    fq12_mul(temp[0], m_denominator, r[1]);
+  } else {
+    fq12_mul(xt, z1, temp[0]);
+    fq12_mul(x1, zt, temp[1]);
+    fq12_sub(temp[0], temp[1], r[0]);
+    fq12_mul(z1, zt, r[1]);
+  }
 }
 
-constexpr int PSEUDO_BINARY_ENCODING[65] = {0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0,
-                          0, 1, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 1, 1,
-                          1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
-                          1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, 1, 1};
+constexpr int PSEUDO_BINARY_ENCODING[65] = {0,  0, 0, 1,  0, 1, 0, -1, 0, 0, 1, -1, 0, 0,  1,  0, 0, 1, 1, 0, -1, 0,
+                                            0,  1, 0, -1, 0, 0, 0, 0,  1, 1, 1, 0,  0, -1, 0,  0, 1, 0, 0, 0, 0,  0,
+                                            -1, 0, 0, 1,  1, 0, 0, -1, 0, 0, 0, 1,  1, 0,  -1, 0, 0, 1, 0, 1, 1};
 
-void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y,
-                        uint256 r[12]) {
+void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 r[12]) {
   uint256 o[12] = {1, 0};
   uint256 t[12] = {};
   cp12(x, t);
@@ -1127,12 +1082,10 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
   fq12_mul(temp[1], f_num, temp[0]);
 
   intx::uint<4096> n =
-      (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
-           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
-           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
-           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
-           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
-           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} -
+      (intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
+           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
+           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} *
+           intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} * intx::uint<4096>{FIELD_MODULUS} -
        1) /
       intx::uint<4096>{CURVE_ORDER};
   final_exponentiate(temp[0], n, r);
@@ -1147,10 +1100,11 @@ void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
 
   uint256 twist_q[3][12];
   g2::twist(Q, twist_q);
-  uint256 fq12_p[3][12] = {{P[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                           {P[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                           {P[2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                           };
+  uint256 fq12_p[3][12] = {
+      {P[0], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {P[1], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {P[2], 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  };
   _miller_loop(twist_q, fq12_p, r);
 }
 
