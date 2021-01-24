@@ -160,11 +160,23 @@ inline void fq2_squr(const uint256 x[2], uint256 r[2]) {
   r[1] = d;
 }
 
-bool arrequ(const uint256 x[2], const uint256 y[2]) { return x[0] == y[0] && x[1] == y[1]; }
-
-bool arrequ(const uint256 x[2][2], const uint256 y[2][2]) {
-  return x[0][0] == y[0][0] && x[0][1] == y[0][1] && x[1][0] == y[1][0] && x[1][1] == y[1][1];
+inline bool arrequ(const uint256 *x, const uint256 *y, const int size) {
+  if (size == 2) {
+    return x[0] == y[0] && x[1] == y[1];
+  }
+  for (int i = 0; i < size; i++) {
+    if (x[i] != y[i]) {
+      return 0;
+    }
+  }
+  return 1;
 }
+
+// G2_COEFF_B0 = mont_encode(0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5)
+// G2_COEFF_B1 = mont_encode(0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2)
+#define G2_COEFF_B0 "0x2514c6324384a86d26b7edf049755260020b1b273633535d3bf938e377b802a8"
+#define G2_COEFF_B1 "0x0141b9ce4a688d4dd749d0dd22ac00aa65f0b37d93ce0d3e38e7ecccd1dcff67"
+constexpr uint256 G2_COEFF_B[2] = {h256(G2_COEFF_B0), h256(G2_COEFF_B1)};
 
 inline void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
   r[0][0] = x[0][0];

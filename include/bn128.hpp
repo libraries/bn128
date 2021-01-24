@@ -15,6 +15,8 @@ namespace bn128 {
 
 using uint256 = intx::uint256;
 
+constexpr inline uint256 h256(const char *s) { return intx::from_string<uint256>(s); }
+
 inline bool eq2(const uint256 x[2], const uint256 y[2]) { return x[0] == y[0] && x[1] == y[1]; }
 
 inline bool eq12(const uint256 x[12], const uint256 y[12]) {
@@ -54,8 +56,7 @@ inline void cp13(const uint256 x[13], uint256 r[13]) {
 }
 
 // The prime modulus of the field.
-constexpr uint256 FIELD_MODULUS =
-    intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
+constexpr uint256 FIELD_MODULUS = h256("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
 
 inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::addmod(x, y, n); }
 
@@ -331,14 +332,13 @@ void fq12_pow(const uint256 x[12], const uint256 &y, uint256 r[12]) {
   }
 }
 
-constexpr uint256 CURVE_ORDER =
-    intx::from_string<uint256>("0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001");
+constexpr uint256 CURVE_ORDER = h256("0x30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001");
 // Curve is y**2 = x**3 + 3
 constexpr uint256 B = 3;
 // Twisted curve over FQ**2
 constexpr uint256 B2[2] = {
-    intx::from_string<uint256>("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
-    intx::from_string<uint256>("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
+    h256("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5"),
+    h256("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2"),
 };
 // Extension curve over FQ**12; same b value as over FQ
 constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -347,16 +347,16 @@ constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 constexpr uint256 G1[3] = {1, 2, 1};
 // Generator for twisted curve over FQ2
 constexpr uint256 G2[3][2] = {{
-                                  intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f"
-                                                             "75edadd46debd5cd992f6ed"),
-                                  intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa49333"
-                                                             "5a9e71297e485b7aef312c2"),
+                                  h256("0x1800deef121f1e76426a00665e5c4479674322d4f"
+                                       "75edadd46debd5cd992f6ed"),
+                                  h256("0x198e9393920d483a7260bfb731fb5d25f1aa49333"
+                                       "5a9e71297e485b7aef312c2"),
                               },
                               {
-                                  intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690"
-                                                             "c43d37b4ce6cc0166fa7daa"),
-                                  intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
-                                                             "0b38ef355acdadcd122975b"),
+                                  h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690"
+                                       "c43d37b4ce6cc0166fa7daa"),
+                                  h256("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
+                                       "0b38ef355acdadcd122975b"),
                               },
                               {1, 0}};
 
@@ -364,10 +364,10 @@ constexpr uint256 G2[3][2] = {{
 constexpr uint256 W[12] = {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 constexpr uint256 G12[3][12] = {
-    {0, 0, intx::from_string<uint256>("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0,
-     0, intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
-    {0, 0, 0, intx::from_string<uint256>("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0,
-     0, 0, intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
+    {0, 0, h256("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0, 0,
+     h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
+    {0, 0, 0, h256("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0, 0, 0,
+     h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
@@ -889,7 +889,7 @@ void mul(const uint256 pt[3][12], const uint256 &n, uint256 r[3][12]) {
 
 } // namespace g12
 
-constexpr uint256 ATE_LOOP_COUNT = intx::from_string<uint256>("0x19d797039be763ba8");
+constexpr uint256 ATE_LOOP_COUNT = h256("0x19d797039be763ba8");
 constexpr int LOG_ATE_LOOP_COUNT = 63;
 
 // Create a function representing the line between P1 and P2, and evaluate it at
