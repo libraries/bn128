@@ -117,7 +117,7 @@ int test_fq2_mul() {
       h256("0x19015293267c8307ffb557fd4ad6052cc22e04f121f21da65bbe2a733c22c53d"),
       h256("0x0e2bf3144f8ca0808b1dfce33c2240c641ff2f7b8f2ca8c185201c5edcc67040"),
   };
-  uint256 c[2] = {};
+  uint256 c[2];
   fq2_mul(a, b, c);
   if (c[0] != h256("0x1a458f1555acd5430609a64acd087c155541125d671ced7f65dcb5a4e48e7d6d")) {
     return 1;
@@ -134,7 +134,7 @@ int test_fq2_inv() {
       h256("0x0010b52d9fe70d08c967a97deeb9eb186da14c608196f376d63ca9589ca5990e"),
       h256("0x2f682d1f7dda8678b0d017978b3067b74807a5d49d2a41739659c6600a8bf018"),
   };
-  uint256 b[2] = {};
+  uint256 b[2];
   fq2_inv(a, b);
   if (b[0] != h256("0x2e99d10b04272627f24f9f0c41e928004b3bdc31880830c2ff2bbe19546ec5d1")) {
     return 1;
@@ -150,17 +150,17 @@ int test_fq2_squr() {
       h256("0x0020b52d9fe70d08c967a97deeb9eb186da14c608196f376d63ca9589ca5970f"),
       h256("0x2b782d1f7dda8678b0d017978b3067b74807a5d49d2a41739659c6600a8bf015"),
   };
-  uint256 b[2] = {};
+  uint256 b[2];
   fq2_squr(a, b);
-  uint256 c[2] = {};
+  uint256 c[2];
   fq2_mul(a, a, c);
   if (!arrequ(b, c, 2)) {
     return 1;
   }
 
   uint256 d[2] = {10, 20};
-  uint256 e[2] = {};
-  uint256 f[2] = {};
+  uint256 e[2];
+  uint256 f[2];
   fq2_squr(d, e);
   fq2_mul(d, d, f);
   if (!arrequ(e, f, 2)) {
@@ -176,8 +176,8 @@ int test_g2_jacobian_affine_conv() {
   uint256 a10 = mont_encode(h256("0x2aa778acda9e7d4925c60ad84c12fb3b4f2b9539d5699934b0e6fdd10cc2c0e1"));
   uint256 a11 = mont_encode(h256("0x1e8f2c1f441fed039bb46d6bfb91236cf7ba240c75080cedbe40e049c46b26be"));
   uint256 a[2][2] = {{a00, a01}, {a10, a11}};
-  uint256 b[3][2] = {};
-  uint256 c[2][2] = {};
+  uint256 b[3][2];
+  uint256 c[2][2];
   g2_from_affine(a, b);
   if (b[0][0] != h256("0x180b9347a1a7d0a8fdaf0bced1c1762460053210c288b08a98bf18dbac6f2e8f")) {
     return 1;
@@ -206,14 +206,14 @@ int test_g2_jacobian_affine_conv() {
 }
 
 int test_g2_double() {
-  uint256 a[2][2] = {};
+  uint256 a[2][2];
   a[0][0] = mont_encode(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"));
   a[0][1] = mont_encode(h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"));
   a[1][0] = mont_encode(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"));
   a[1][1] = mont_encode(h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"));
-  uint256 b[3][2] = {};
+  uint256 b[3][2];
   g2_from_affine(a, b);
-  uint256 c[3][2] = {};
+  uint256 c[3][2];
   g2_double(b, c);
   if (b[0][0] != h256("0x19573841af96503bfbb8264797811adfdceb1935497b01728e83b5d102bc2026")) {
     return 1;
@@ -231,6 +231,37 @@ int test_g2_double() {
     return 1;
   }
   if (b[2][1] != 0) {
+    return 1;
+  }
+  return 0;
+}
+
+int test_g2_add() {
+  uint256 a[2][2];
+  a[0][0] = mont_encode(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"));
+  a[0][1] = mont_encode(h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"));
+  a[1][0] = mont_encode(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"));
+  a[1][1] = mont_encode(h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"));
+  uint256 b[3][2];
+  g2_from_affine(a, b);
+  uint256 c[3][2];
+  g2_add(b, G2_ONE, c);
+  if (c[0][0] != h256("0x190178401674fd1a6ce2b0feabb43601f71985df6e1d9ae392c552517113f04c")) {
+    return 1;
+  }
+  if (c[0][1] != h256("0x22c5dc5d9fe664ed64074fdc1d7eba9d5be249895ca71ac4192c5eacbcc23fc5")) {
+    return 1;
+  }
+  if (c[1][0] != h256("0x16b5ca02a81579a0b7c93f9ab34a255d29737922388c9abf69faf1822d82e9d2")) {
+    return 1;
+  }
+  if (c[1][1] != h256("0x36e1261fdadb4eead4952efe416e4ba9a5d9892c8fce6864a14ebd2219f1b7")) {
+    return 1;
+  }
+  if (c[2][0] != h256("0x2196af647c0ae3e446ebef0dc4b5a3a0657e3a9e82cb6c63871b6924385ad6a5")) {
+    return 1;
+  }
+  if (c[2][1] != h256("0x1b4941cd27fac904abf26b7c666a20edb8aff24464fa7976c812b6ad8e30addc")) {
     return 1;
   }
   return 0;
@@ -258,6 +289,8 @@ int main() {
   if (test_g2_jacobian_affine_conv())
     return 1;
   if (test_g2_double())
+    return 1;
+  if (test_g2_add())
     return 1;
   return 0;
 }
