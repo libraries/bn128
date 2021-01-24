@@ -149,7 +149,7 @@ inline void fq2_inv(const uint256 x[2], uint256 r[2]) {
   r[1] = fq_neg(fq_mul(x[1], t));
 }
 
-void fq2_squ(const uint256 x[2], uint256 r[2]) {
+void fq2_squr(const uint256 x[2], uint256 r[2]) {
   uint256 a = fq_mul(x[0], x[1]);
   uint256 b = fq_mul(fq_add(fq_mul(x[1], FQ_NON_RESIDUE), x[0]), fq_add(x[0], x[1]));
   uint256 c = fq_sub(fq_sub(b, a), fq_mul(a, FQ_NON_RESIDUE));

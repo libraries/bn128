@@ -133,18 +133,28 @@ int test_fq2_inv() {
   return 0;
 }
 
-int test_fq2_squ() {
+int test_fq2_squr() {
   uint256 a[2] = {
       intx::from_string<uint256>("0x0020b52d9fe70d08c967a97deeb9eb186da14c608196f376d63ca9589ca5970f"),
       intx::from_string<uint256>("0x2b782d1f7dda8678b0d017978b3067b74807a5d49d2a41739659c6600a8bf015"),
   };
   uint256 b[2] = {};
-  fq2_squ(a, b);
+  fq2_squr(a, b);
   uint256 c[2] = {};
   fq2_mul(a, a, c);
   if (b[0] != c[0] || b[1] != c[1]) {
     return 1;
   }
+
+  uint256 d[2] = {10, 20};
+  uint256 e[2] = {};
+  uint256 f[2] = {};
+  fq2_squr(d, e);
+  fq2_mul(d, d, f);
+  if (e[0] != f[0] || e[1] != f[1]) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -165,7 +175,7 @@ int main() {
     return 1;
   if (test_fq2_inv())
     return 1;
-  if (test_fq2_squ())
+  if (test_fq2_squr())
     return 1;
   return 0;
 }
