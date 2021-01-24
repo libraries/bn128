@@ -55,22 +55,24 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
   }
 }
 
+constexpr inline uint256 h256(const char *s) { return intx::from_string<uint256>(s); }
+
 // The prime modulus of the field.
 #define FIELD_MODULUS_HEX "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
-constexpr uint256 FIELD_MODULUS = intx::from_string<uint256>(FIELD_MODULUS_HEX);
+constexpr uint256 FIELD_MODULUS = h256(FIELD_MODULUS_HEX);
 // R = 2 ** 256
 // R_SQUARD = R * R % FIELD_MODULUS
 // R_CUBED = R_SQUARD * R % FIELD_MODULUS
 #define R_SQUARD_HEX "0x06d89f71cab8351f47ab1eff0a417ff6b5e71911d44501fbf32cfc5b538afa89"
 #define R_CUBED_HEX "0x20fd6e902d592544ef7f0b0c0ada0afb62f210e6a7283db6b1cd6dafda1530df"
-constexpr uint256 R_SQUARD = intx::from_string<uint256>(R_SQUARD_HEX);
-constexpr uint256 R_CUBED = intx::from_string<uint256>(R_CUBED_HEX);
+constexpr uint256 R_SQUARD = h256(R_SQUARD_HEX);
+constexpr uint256 R_CUBED = h256(R_CUBED_HEX);
 // R_PRIME * R % FIELD_MODULUS == 1
 #define R_PRIME_HEX "0x2e67157159e5c639cf63e9cfb74492d9eb2022850278edf8ed84884a014afa37"
-constexpr uint256 R_PRIME = intx::from_string<uint256>(R_PRIME_HEX);
+constexpr uint256 R_PRIME = h256(R_PRIME_HEX);
 #define FIELD_MODULUS_PRIME_HEX "0xf57a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389"
 // FIELD_MODULUS_PRIME * (-FIELD_MODULUS) % R == 1
-constexpr uint256 FIELD_MODULUS_PRIME = intx::from_string<uint256>(FIELD_MODULUS_PRIME_HEX);
+constexpr uint256 FIELD_MODULUS_PRIME = h256(FIELD_MODULUS_PRIME_HEX);
 
 // Montgomery reduction, also known as REDC.
 // REDC(T)=T*R' mod N(N>1)，
@@ -104,7 +106,7 @@ inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
 // FQ_NON_RESIDUE = mont_encode(FIELD_MODULUS - 1);
 #define FQ_NON_RESIDUE_HEX "0x2259d6b14729c0fa51e1a247090812318d087f6872aabf4f68c3488912edefaa"
-constexpr uint256 FQ_NON_RESIDUE = intx::from_string<uint256>(FQ_NON_RESIDUE_HEX);
+constexpr uint256 FQ_NON_RESIDUE = h256(FQ_NON_RESIDUE_HEX);
 
 inline void fq2_add(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   uint256 a = fq_add(x[0], y[0]);
@@ -149,13 +151,51 @@ inline void fq2_inv(const uint256 x[2], uint256 r[2]) {
   r[1] = fq_neg(fq_mul(x[1], t));
 }
 
-void fq2_squr(const uint256 x[2], uint256 r[2]) {
+inline void fq2_squr(const uint256 x[2], uint256 r[2]) {
   uint256 a = fq_mul(x[0], x[1]);
   uint256 b = fq_mul(fq_add(fq_mul(x[1], FQ_NON_RESIDUE), x[0]), fq_add(x[0], x[1]));
   uint256 c = fq_sub(fq_sub(b, a), fq_mul(a, FQ_NON_RESIDUE));
   uint256 d = fq_add(a, a);
   r[0] = c;
   r[1] = d;
+}
+
+bool arrequ(const uint256 x[2], const uint256 y[2]) { return x[0] == y[0] && x[1] == y[1]; }
+
+bool arrequ(const uint256 x[2][2], const uint256 y[2][2]) {
+  return x[0][0] == y[0][0] && x[0][1] == y[0][1] && x[1][0] == y[1][0] && x[1][1] == y[1][1];
+}
+
+inline void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
+  r[0][0] = x[0][0];
+  r[0][1] = x[0][1];
+  r[1][0] = x[1][0];
+  r[1][1] = x[1][1];
+  r[2][0] = 1;
+  r[2][1] = 0;
+}
+
+inline void g2_from_jacobian(const uint256 x[3][2], uint256 r[2][2]) {
+  if (x[2][0] == 0 && x[2][1] == 0) {
+    assert(0);
+  } else if (x[2][0] == 1 && x[2][1] == 0) {
+    r[0][0] = x[0][0];
+    r[0][1] = x[0][1];
+    r[1][0] = x[1][0];
+    r[1][1] = x[1][1];
+  } else {
+    uint256 zinv[2] = {};
+    fq2_inv(x[2], zinv);
+
+    uint256 zinv_squared[2] = {};
+    fq2_squr(zinv, zinv_squared);
+
+    uint256 zinv_squared_mul_zinv[2] = {};
+    fq2_mul(zinv_squared, zinv, zinv_squared_mul_zinv);
+
+    fq2_mul(x[0], zinv_squared, r[0]);
+    fq2_mul(x[1], zinv_squared_mul_zinv, r[1]);
+  }
 }
 
 } // namespace bn128
