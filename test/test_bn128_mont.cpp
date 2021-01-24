@@ -41,6 +41,18 @@ int test_constexpr() {
   if ((uint512(1, 0) - uint512(FIELD_MODULUS)) * uint512(FIELD_MODULUS_PRIME) % uint512(1, 0) != 1) {
     return 1;
   }
+  if (mont_encode(1) != FQ_ONE) {
+    return 1;
+  }
+  // G2_COEFF_B0 = mont_encode(0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5)
+  if (mont_encode(h256("0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5")) != G2_COEFF_B[0]) {
+    return 1;
+  }
+  // G2_COEFF_B1 = mont_encode(0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2)
+  if (mont_encode(h256("0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2")) != G2_COEFF_B[1]) {
+    return 1;
+  }
+
   return 0;
 }
 
@@ -167,11 +179,60 @@ int test_g2_jacobian_affine_conv() {
   uint256 b[3][2] = {};
   uint256 c[2][2] = {};
   g2_from_affine(a, b);
+  if (b[0][0] != h256("0x180b9347a1a7d0a8fdaf0bced1c1762460053210c288b08a98bf18dbac6f2e8f")) {
+    return 1;
+  }
+  if (b[0][1] != h256("0x20695a8c8acfdc037e47d786b0615dd17f3f17b3f63bb0ad9fd68d54d7bbf4ed")) {
+    return 1;
+  }
+  if (b[1][0] != h256("0x29dad7762754564b72ac95ba67b28db571932de27a4d188d7704dd18f28cfcbe")) {
+    return 1;
+  }
+  if (b[1][1] != h256("0x2c5d04ea5da8d50c233667e8e1086c089a67f531e25789bfbaeb22635e0a5f73")) {
+    return 1;
+  }
+  if (b[2][0] != FQ2_ONE[0]) {
+    return 1;
+  }
+  if (b[2][1] != FQ2_ONE[1]) {
+    return 1;
+  }
   g2_from_jacobian(b, c);
   if (!arrequ(a[0], c[0], 2) || !arrequ(a[1], c[1], 2)) {
     return 1;
   }
 
+  return 0;
+}
+
+int test_g2_double() {
+  uint256 a[2][2] = {};
+  a[0][0] = mont_encode(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"));
+  a[0][1] = mont_encode(h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"));
+  a[1][0] = mont_encode(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"));
+  a[1][1] = mont_encode(h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"));
+  uint256 b[3][2] = {};
+  g2_from_affine(a, b);
+  uint256 c[3][2] = {};
+  g2_double(b, c);
+  if (b[0][0] != h256("0x19573841af96503bfbb8264797811adfdceb1935497b01728e83b5d102bc2026")) {
+    return 1;
+  }
+  if (b[0][1] != h256("0x14fef0833aea7b6b09e950fc52a02f866043dd5a5802d8c4afb4737da84c6140")) {
+    return 1;
+  }
+  if (b[1][0] != h256("0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6")) {
+    return 1;
+  }
+  if (b[1][1] != h256("0xda4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee")) {
+    return 1;
+  }
+  if (b[2][0] != h256("0xe0a77c19a07df2f666ea36f7879462c0a78eb28f5c70b3dd35d438dc58f0d9d")) {
+    return 1;
+  }
+  if (b[2][1] != 0) {
+    return 1;
+  }
   return 0;
 }
 
@@ -195,6 +256,8 @@ int main() {
   if (test_fq2_squr())
     return 1;
   if (test_g2_jacobian_affine_conv())
+    return 1;
+  if (test_g2_double())
     return 1;
   return 0;
 }

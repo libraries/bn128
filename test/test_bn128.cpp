@@ -457,15 +457,15 @@ int test_misc() {
   uint256 tmp[3][2][2] = {};
   // Taking from
   // https://github.com/xxuejie/benchmarking-wasm-ewasm-evm/blob/checkpoint/evmrace/ckbvm/bn256g2_test.cpp
-  tmp[0][0][0] = intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
-  tmp[0][0][1] = intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
-  tmp[0][1][0] = intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
-  tmp[0][1][1] = intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
+  tmp[0][0][0] = h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
+  tmp[0][0][1] = h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
+  tmp[0][1][0] = h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
+  tmp[0][1][1] = h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
   mul(tmp[0], 0x2dddefa19, tmp[2]);
-  tmp[1][0][0] = intx::from_string<uint256>("0x23997083c2c4409869ee3546806a544c8c16bc46cc88598c4e1c853eb81d45b0");
-  tmp[1][0][1] = intx::from_string<uint256>("0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
-  tmp[1][1][0] = intx::from_string<uint256>("0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
-  tmp[1][1][1] = intx::from_string<uint256>("0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
+  tmp[1][0][0] = h256("0x23997083c2c4409869ee3546806a544c8c16bc46cc88598c4e1c853eb81d45b0");
+  tmp[1][0][1] = h256("0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
+  tmp[1][1][0] = h256("0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
+  tmp[1][1][1] = h256("0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
   if (!(eq2(tmp[1][0], tmp[2][0]) && eq2(tmp[1][1], tmp[2][1]))) {
     return 1;
   }
@@ -473,19 +473,19 @@ int test_misc() {
   // Taking from
   // https://github.com/ewasm/ethereum-bn128.rs/blob/master/src/lib.rs#L318
   uint256 out[3][12];
-  tmp[0][0][0] = intx::from_string<uint256>("0x2eca0c7238bf16e83e7a1e6c5d49540685ff51380f309842a98561558019fc02");
-  tmp[0][0][1] = intx::from_string<uint256>("0x03d3260361bb8451de5ff5ecd17f010ff22f5c31cdf184e9020b06fa5997db84");
-  tmp[1][0][1] = intx::from_string<uint256>("0x1213d2149b006137fcfb23036606f848d638d576a120ca981b5b1a5f9300b3ee");
-  tmp[1][0][0] = intx::from_string<uint256>("0x2276cf730cf493cd95d64677bbb75fc42db72513a4c1e387b476d056f80aa75f");
-  tmp[1][1][1] = intx::from_string<uint256>("0x21ee6226d31426322afcda621464d0611d226783262e21bb3bc86b537e986237");
-  tmp[1][1][0] = intx::from_string<uint256>("0x096df1f82dff337dd5972e32a8ad43e28a78a96a823ef1cd4debe12b6552ea5f");
+  tmp[0][0][0] = h256("0x2eca0c7238bf16e83e7a1e6c5d49540685ff51380f309842a98561558019fc02");
+  tmp[0][0][1] = h256("0x03d3260361bb8451de5ff5ecd17f010ff22f5c31cdf184e9020b06fa5997db84");
+  tmp[1][0][1] = h256("0x1213d2149b006137fcfb23036606f848d638d576a120ca981b5b1a5f9300b3ee");
+  tmp[1][0][0] = h256("0x2276cf730cf493cd95d64677bbb75fc42db72513a4c1e387b476d056f80aa75f");
+  tmp[1][1][1] = h256("0x21ee6226d31426322afcda621464d0611d226783262e21bb3bc86b537e986237");
+  tmp[1][1][0] = h256("0x096df1f82dff337dd5972e32a8ad43e28a78a96a823ef1cd4debe12b6552ea5f");
   pairing(tmp[1], tmp[0][0], out[0]);
-  tmp[0][0][0] = intx::from_string<uint256>("0x06967a1237ebfeca9aaae0d6d0bab8e28c198c5a339ef8a2407e31cdac516db9");
-  tmp[0][0][1] = intx::from_string<uint256>("0x22160fa257a5fd5b280642ff47b65eca77e626cb685c84fa6d3b6882a283ddd1");
-  tmp[1][0][1] = intx::from_string<uint256>("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
-  tmp[1][0][0] = intx::from_string<uint256>("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
-  tmp[1][1][1] = intx::from_string<uint256>("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
-  tmp[1][1][0] = intx::from_string<uint256>("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
+  tmp[0][0][0] = h256("0x06967a1237ebfeca9aaae0d6d0bab8e28c198c5a339ef8a2407e31cdac516db9");
+  tmp[0][0][1] = h256("0x22160fa257a5fd5b280642ff47b65eca77e626cb685c84fa6d3b6882a283ddd1");
+  tmp[1][0][1] = h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2");
+  tmp[1][0][0] = h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed");
+  tmp[1][1][1] = h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b");
+  tmp[1][1][0] = h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
   pairing(tmp[1], tmp[0][0], out[1]);
   fq12_mul(out[0], out[1], out[2]);
   if (!eq12(out[2], FQ12_ONE)) {
