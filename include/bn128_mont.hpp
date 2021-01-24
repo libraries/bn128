@@ -187,6 +187,7 @@ constexpr uint256 G2_COEFF_B[2] = {h256(G2_COEFF_B0), h256(G2_COEFF_B1)};
 #define G2_ONE_10 "0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6"
 #define G2_ONE_11 "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
 constexpr uint256 G2_ONE[3][2] = {{h256(G2_ONE_00), h256(G2_ONE_01)}, {h256(G2_ONE_10), h256(G2_ONE_11)}, {FQ_ONE, 0}};
+constexpr uint256 G2_ZERO[3][2] = {{0, 0}, {FQ2_ONE[0], FQ2_ONE[1]}, {0, 0}};
 
 void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
   r[0][0] = x[0][0];
@@ -264,13 +265,9 @@ void g2_double(const uint256 x[3][2], uint256 r[3][2]) {
   // R[1] = E * (D - X3) - C8
   fq2_sub(d, x3, z);
   fq2_mul(e, z, z);
-  fq2_sub(z, c8, z);
-  r[1][0] = z[0];
-  r[1][1] = z[1];
+  fq2_sub(z, c8, r[1]);
   // R[2] = YZ + YZ
-  fq2_add(yz, yz, z);
-  r[2][0] = z[0];
-  r[2][1] = z[1];
+  fq2_add(yz, yz, r[2]);
 }
 
 void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
@@ -362,42 +359,42 @@ void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
   fq2_add(x[2], y[2], r[2]);
   fq2_squr(r[2], z);
   fq2_sub(z, z1_squared, r[2]);
-  fq2_sub(z, z2_squared, z);
+  fq2_sub(r[2], z2_squared, z);
   fq2_mul(z, h, r[2]);
 }
 
 void g2_mul(const uint256 x[3][2], const uint256 &y, uint256 r[3][2]) {
-  r[0][0] = 0;
-  r[0][1] = 0;
-  r[1][0] = FQ2_ONE[0];
-  r[1][1] = FQ2_ONE[1];
-  r[2][0] = 0;
-  r[2][1] = 0;
-
-  uint256 a[3][2];
+  uint256 a[3][2] = {{0, 0}, {FQ2_ONE[0], FQ2_ONE[1]}, {0, 0}}; // G2_ZERO
+  uint256 b[3][2];
 
   bool found_one = 0;
-  for (int i = 0; i < 256; i++) {
+  for (int i = 255; i > -1; i--) {
     if (found_one) {
-      g2_double(r, a);
-      r[0][0] = a[0][0];
-      r[0][1] = a[0][1];
-      r[1][0] = a[1][0];
-      r[1][1] = a[1][1];
-      r[2][0] = a[2][0];
-      r[2][1] = a[2][1];
+      g2_double(a, b);
+      a[0][0] = b[0][0];
+      a[0][1] = b[0][1];
+      a[1][0] = b[1][0];
+      a[1][1] = b[1][1];
+      a[2][0] = b[2][0];
+      a[2][1] = b[2][1];
     }
     if (y & (1 << i)) {
-      found_one = true;
-      g2_add(r, x, a);
-      r[0][0] = a[0][0];
-      r[0][1] = a[0][1];
-      r[1][0] = a[1][0];
-      r[1][1] = a[1][1];
-      r[2][0] = a[2][0];
-      r[2][1] = a[2][1];
+      found_one = 1;
+      g2_add(a, x, b);
+      a[0][0] = b[0][0];
+      a[0][1] = b[0][1];
+      a[1][0] = b[1][0];
+      a[1][1] = b[1][1];
+      a[2][0] = b[2][0];
+      a[2][1] = b[2][1];
     }
   }
+  r[0][0] = a[0][0];
+  r[0][1] = a[0][1];
+  r[1][0] = a[1][0];
+  r[1][1] = a[1][1];
+  r[2][0] = a[2][0];
+  r[2][1] = a[2][1];
 }
 
 } // namespace bn128
