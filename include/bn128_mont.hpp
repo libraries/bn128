@@ -378,7 +378,7 @@ void g2_mul(const uint256 x[3][2], const uint256 &y, uint256 r[3][2]) {
       a[2][0] = b[2][0];
       a[2][1] = b[2][1];
     }
-    if (y & (1 << i)) {
+    if (y & (uint256{1} << i)) {
       found_one = 1;
       g2_add(a, x, b);
       a[0][0] = b[0][0];
