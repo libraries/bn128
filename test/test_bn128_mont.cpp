@@ -154,7 +154,7 @@ int test_fq2_squr() {
   fq2_squr(a, b);
   uint256 c[2];
   fq2_mul(a, a, c);
-  if (!arrequ(b, c, 2)) {
+  if (!arreq(b, c, 2)) {
     return 1;
   }
 
@@ -163,7 +163,7 @@ int test_fq2_squr() {
   uint256 f[2];
   fq2_squr(d, e);
   fq2_mul(d, d, f);
-  if (!arrequ(e, f, 2)) {
+  if (!arreq(e, f, 2)) {
     return 1;
   }
 
@@ -198,7 +198,7 @@ int test_g2_jacobian_affine_conv() {
     return 1;
   }
   g2_from_jacobian(b, c);
-  if (!arrequ(a[0], c[0], 2) || !arrequ(a[1], c[1], 2)) {
+  if (!arreq(a[0], c[0], 2) || !arreq(a[1], c[1], 2)) {
     return 1;
   }
 
