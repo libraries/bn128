@@ -56,78 +56,43 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
 
 constexpr inline uint256 h256(const char *s) { return intx::from_string<uint256>(s); }
 
+// clang-format off
 inline bool arreq(const uint256 *x, const uint256 *y, const int size) {
   switch (size) {
-  case 12:
-    if (y[11] != x[11])
-      return 0;
-  case 11:
-    if (y[10] != x[10])
-      return 0;
-  case 10:
-    if (y[9] != x[9])
-      return 0;
-  case 9:
-    if (y[8] != x[8])
-      return 0;
-  case 8:
-    if (y[7] != x[7])
-      return 0;
-  case 7:
-    if (y[6] != x[6])
-      return 0;
-  case 6:
-    if (y[5] != x[5])
-      return 0;
-  case 5:
-    if (y[4] != x[4])
-      return 0;
-  case 4:
-    if (y[3] != x[3])
-      return 0;
-  case 3:
-    if (y[2] != x[2])
-      return 0;
-  case 2:
-    if (y[1] != x[1])
-      return 0;
-  case 1:
-    if (y[0] != x[0])
-      return 0;
+  case 12: if (y[11] != x[11]) return 0;
+  case 11: if (y[10] != x[10]) return 0;
+  case 10: if (y[9] != x[9]) return 0;
+  case 9: if (y[8] != x[8]) return 0;
+  case 8: if (y[7] != x[7]) return 0;
+  case 7: if (y[6] != x[6]) return 0;
+  case 6: if (y[5] != x[5]) return 0;
+  case 5: if (y[4] != x[4]) return 0;
+  case 4: if (y[3] != x[3]) return 0;
+  case 3: if (y[2] != x[2]) return 0;
+  case 2: if (y[1] != x[1]) return 0;
+  case 1: if (y[0] != x[0]) return 0;
   }
   return 1;
 }
 
 inline void arrcp(const uint256 *x, uint256 *r, const int size) {
   switch (size) {
-  case 13:
-    r[12] = x[12];
-  case 12:
-    r[11] = x[11];
-  case 11:
-    r[10] = x[10];
-  case 10:
-    r[9] = x[9];
-  case 9:
-    r[8] = x[8];
-  case 8:
-    r[7] = x[7];
-  case 7:
-    r[6] = x[6];
-  case 6:
-    r[5] = x[5];
-  case 5:
-    r[4] = x[4];
-  case 4:
-    r[3] = x[3];
-  case 3:
-    r[2] = x[2];
-  case 2:
-    r[1] = x[1];
-  case 1:
-    r[0] = x[0];
+  case 13: r[12] = x[12];
+  case 12: r[11] = x[11];
+  case 11: r[10] = x[10];
+  case 10: r[9] = x[9];
+  case 9: r[8] = x[8];
+  case 8: r[7] = x[7];
+  case 7: r[6] = x[6];
+  case 6: r[5] = x[5];
+  case 5: r[4] = x[4];
+  case 4: r[3] = x[3];
+  case 3: r[2] = x[2];
+  case 2: r[1] = x[1];
+  case 1: r[0] = x[0];
   }
 }
+// clang-format on
 
 // The prime modulus of the field.
 constexpr uint256 FIELD_MODULUS = h256("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
@@ -285,7 +250,7 @@ int _deg(const uint256 p[13]) {
 void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) {
   int dega = _deg(a);
   int degb = _deg(b);
-  uint256 t[13] = {};
+  uint256 t[13];
   arrcp(a, t, 13);
   uint256 o[13] = {0};
   for (int i = dega - degb; i > -1; i--) {
@@ -303,16 +268,16 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) 
 void fq12_inv(const uint256 x[12], uint256 r[12]) {
   uint256 lm[13] = {1, 0};
   uint256 hm[13] = {0};
-  uint256 low[13] = {};
+  uint256 low[13];
   arrcp(x, low, 12);
   low[12] = 0;
-  uint256 high[13] = {};
+  uint256 high[13];
   arrcp(FQ12_MODULUS_COEFFS, high, 12);
   high[12] = 1;
 
-  uint256 temp[13] = {};
-  uint256 nm[13] = {};
-  uint256 news[13] = {};
+  uint256 temp[13];
+  uint256 nm[13];
+  uint256 news[13];
   while (_deg(low)) {
     for (int i = 0; i < 13; i++) {
       temp[i] = 0;
@@ -964,9 +929,9 @@ void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12], const uint256 
   auto x1 = p1[0], y1 = p1[1], z1 = p1[2];
   auto x2 = p2[0], y2 = p2[1], z2 = p2[2];
   auto xt = pt[0], yt = pt[1], zt = pt[2];
-  uint256 m_numerator[12] = {};
-  uint256 m_denominator[12] = {};
-  uint256 temp[4][12] = {};
+  uint256 m_numerator[12];
+  uint256 m_denominator[12];
+  uint256 temp[4][12];
   fq12_mul(y2, z1, temp[0]);
   fq12_mul(y1, z2, temp[1]);
   fq12_sub(temp[0], temp[1], m_numerator);
@@ -1015,7 +980,7 @@ constexpr int PSEUDO_BINARY_ENCODING[65] = {0,  0, 0, 1,  0, 1, 0, -1, 0, 0, 1, 
 
 void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 r[12]) {
   uint256 o[12] = {1, 0};
-  uint256 t[12] = {};
+  uint256 t[12];
   arrcp(x, t, 12);
   intx::uint<4096> other = y;
   while (other > 0) {
@@ -1035,20 +1000,20 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
     return;
   }
 
-  uint256 R[3][12] = {};
+  uint256 R[3][12];
   arrcp(Q[0], R[0], 12);
   arrcp(Q[1], R[1], 12);
   arrcp(Q[2], R[2], 12);
 
-  uint256 f_num[12] = {};
-  uint256 f_den[12] = {};
+  uint256 f_num[12];
+  uint256 f_den[12];
   arrcp(FQ12_ONE, f_num, 12);
   arrcp(FQ12_ONE, f_den, 12);
 
-  uint256 nd1[2][12] = {};
-  uint256 nd2[2][12] = {};
+  uint256 nd1[2][12];
+  uint256 nd2[2][12];
 
-  uint256 temp[3][12] = {};
+  uint256 temp[3][12];
 
   for (int i = 63; i > -1; i--) {
     int b = PSEUDO_BINARY_ENCODING[i];
@@ -1078,7 +1043,7 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
       arrcp(temp[1], R[1], 12);
       arrcp(temp[2], R[2], 12);
     } else if (b == -1) {
-      uint256 nQ[3][12] = {};
+      uint256 nQ[3][12];
       arrcp(Q[0], nQ[0], 12);
       fq12_neg(Q[1], nQ[1]);
       arrcp(Q[2], nQ[2], 12);
@@ -1097,12 +1062,12 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
     }
   }
 
-  uint256 Q1[3][12] = {};
+  uint256 Q1[3][12];
   fq12_pow(Q[0], FIELD_MODULUS, Q1[0]);
   fq12_pow(Q[1], FIELD_MODULUS, Q1[1]);
   fq12_pow(Q[2], FIELD_MODULUS, Q1[2]);
 
-  uint256 nQ2[3][12] = {};
+  uint256 nQ2[3][12];
   fq12_pow(Q1[0], FIELD_MODULUS, nQ2[0]);
   fq12_pow(Q1[1], FIELD_MODULUS, nQ2[2]);
   fq12_neg(nQ2[2], nQ2[1]);
@@ -1158,7 +1123,7 @@ void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   if (arreq(p2, FQ2_ZERO, 2)) {
     y[2] = 0;
   }
-  uint256 o[3] = {};
+  uint256 o[3];
   // The point at infinity is encoded as (0, 0)
   g1::add(x, y, o);
   if (o[2] == 0) {
@@ -1169,14 +1134,22 @@ void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   g1::from_jacobian(o, r);
 }
 
-void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
-  uint256 x[3][2] = {{pt[0][0], pt[0][1]}, {pt[1][0], pt[1][1]}, {1, 0}};
-  uint256 o[3][2] = {};
-  g2::mul(x, n, o);
-  g2::from_jacobian(o, r);
+void alt_bn128_mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
+  uint256 x[3] = {pt[0], pt[1], 1};
+  if (arreq(pt, FQ2_ZERO, 2)) {
+    x[2] = 0;
+  }
+  uint256 o[3];
+  g1::mul(x, n, o);
+  if (o[2] == 0) {
+    r[0] = 0;
+    r[1] = 0;
+    return;
+  }
+  g1::from_jacobian(o, r);
 }
 
-void pairing(const uint256 Q[2][2], const uint256 P[2], uint256 r[12]) {
+void alt_bn128_pairing(const uint256 Q[2][2], const uint256 P[2], uint256 r[12]) {
   uint256 x[3][2] = {{Q[0][0], Q[0][1]}, {Q[1][0], Q[1][1]}, {1, 0}};
   uint256 y[3] = {P[0], P[1], 1};
   _pairing(x, y, r);
