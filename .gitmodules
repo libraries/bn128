@@ -1,0 +1,7 @@
+[submodule "ckb-vm-run"]
+	path = ckb-vm-run
+	url = https://github.com/mohanson/ckb-vm-run
+[submodule "intx"]
+	path = intx
+	url = https://github.com/libraries/intx
+	branch = ckb
