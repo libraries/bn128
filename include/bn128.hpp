@@ -1148,12 +1148,25 @@ void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
   _miller_loop(twist_q, fq12_p, r);
 }
 
-void add(const uint256 p1[2][2], const uint256 p2[2][2], uint256 r[2][2]) {
-  uint256 x[3][2] = {{p1[0][0], p1[0][1]}, {p1[1][0], p1[1][1]}, {1, 0}};
-  uint256 y[3][2] = {{p2[0][0], p2[0][1]}, {p2[1][0], p2[1][1]}, {1, 0}};
-  uint256 o[3][2] = {};
-  g2::add(x, y, o);
-  g2::from_jacobian(o, r);
+void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
+  // The point at infinity is encoded as (0, 0)
+  uint256 x[3] = {p1[0], p1[1], 1};
+  if (arreq(p1, FQ2_ZERO, 2)) {
+    x[2] = 0;
+  }
+  uint256 y[3] = {p2[0], p2[1], 1};
+  if (arreq(p2, FQ2_ZERO, 2)) {
+    y[2] = 0;
+  }
+  uint256 o[3] = {};
+  // The point at infinity is encoded as (0, 0)
+  g1::add(x, y, o);
+  if (o[2] == 0) {
+    r[0] = 0;
+    r[1] = 0;
+    return;
+  }
+  g1::from_jacobian(o, r);
 }
 
 void mul(const uint256 pt[2][2], const uint256 &n, uint256 r[2][2]) {
