@@ -427,6 +427,12 @@ bool eq(const uint256 x[3], const uint256 y[3]) {
   return (fq_mul(x1, z2) == fq_mul(x2, z1)) && (fq_mul(y1, z2) == fq_mul(y2, z1));
 }
 
+void from_jacobian(const uint256 x[3], uint256 r[3]) {
+  uint256 invz = fq_inv(x[2]);
+  r[0] = fq_mul(x[0], invz);
+  r[1] = fq_mul(x[1], invz);
+}
+
 void doubl2(const uint256 pt[3], uint256 r[3]) {
   uint256 x = pt[0], y = pt[1], z = pt[2];
 
