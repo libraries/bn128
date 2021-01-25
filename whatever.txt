@@ -1,3 +1,0 @@
-print([i.n % 256 for i in r[0].coeffs])
-
-printf("%d %d %d %d %d %d %d %d %d %d %d %d\n", static_cast<int>(R[0][0] % 256), static_cast<int>(R[0][1] % 256), static_cast<int>(R[0][2] % 256), static_cast<int>(R[0][3] % 256), static_cast<int>(R[0][4] % 256), static_cast<int>(R[0][5] % 256), static_cast<int>(R[0][6] % 256), static_cast<int>(R[0][7] % 256), static_cast<int>(R[0][8] % 256), static_cast<int>(R[0][9] % 256), static_cast<int>(R[0][10] % 256), static_cast<int>(R[0][11] % 256));
