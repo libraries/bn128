@@ -3,6 +3,27 @@
 
 using namespace bn128;
 
+int test_invmod() {
+  constexpr uint256 x_case[8] = {
+      h256("0x0000000000000000000000000000000000000000000000000000000000000001"),
+      h256("0x00000000000000000000000012341234abcd0000000000000000000000000001"),
+      h256("0x0000000000000000000000000000000000000000000fffffffffffffffffffff"),
+      h256("0x0123456789a00000000000000000000000000000000000000000000000000001"),
+      h256("0x0000000000000000000000000000000000000000000000000000000000000007"),
+      h256("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd07"),
+      h256("0x00644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"),
+      h256("0x30644e72e131a029b82222228181585d97816a916871ca8d3c208c16d87cfd47"),
+  };
+  for (int i = 0; i < 8; i++) {
+    uint256 a = x_case[i];
+    uint256 r = _mulmod(a, _invmod(a, FIELD_MODULUS), FIELD_MODULUS);
+    if (r != 1) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 int test_fq() {
   // Assert FQ(2) + FQ(2) == FQ(4)
   if (fq_add(2, 2) != 4) {
@@ -46,13 +67,13 @@ int test_fq2() {
 
   // Assert x + f == fpx
   fq2_add(x, f, tmp[0]);
-  if (!eq2(tmp[0], fpx)) {
+  if (!arreq(tmp[0], fpx, 2)) {
     return 1;
   }
 
   // Assert f / f == one
   fq2_div(f, f, tmp[0]);
-  if (!eq2(tmp[0], one)) {
+  if (!arreq(tmp[0], one, 2)) {
     return 1;
   }
 
@@ -62,7 +83,7 @@ int test_fq2() {
   fq2_add(tmp[0], tmp[1], tmp[0]);
   fq2_add(one, x, tmp[1]);
   fq2_div(tmp[1], f, tmp[1]);
-  if (!eq2(tmp[0], tmp[1])) {
+  if (!arreq(tmp[0], tmp[1], 2)) {
     return 1;
   }
 
@@ -72,13 +93,13 @@ int test_fq2() {
   fq2_add(tmp[0], tmp[1], tmp[0]);
   fq2_add(one, x, tmp[1]);
   fq2_mul(tmp[1], f, tmp[1]);
-  if (!eq2(tmp[0], tmp[1])) {
+  if (!arreq(tmp[0], tmp[1], 2)) {
     return 1;
   }
 
   // Assert x ** (FIELD_MODULUS ** 2 - 1) == one
   fq2_pow(x, fq_sub(fq_pow(FIELD_MODULUS, 2), 1), tmp[0]);
-  if (!eq2(tmp[0], one)) {
+  if (!arreq(tmp[0], one, 2)) {
     return 1;
   }
 
@@ -88,7 +109,7 @@ int test_fq2() {
   tmp[1][0] = 9;
   tmp[1][1] = 1;
   fq2_div(tmp[0], tmp[1], tmp[0]);
-  if (!eq2(tmp[0], B2)) {
+  if (!arreq(tmp[0], B2, 2)) {
     return 1;
   }
 
@@ -104,13 +125,13 @@ int test_fq12() {
 
   // Assert x + f == fpx
   fq12_add(x, f, tmp[0]);
-  if (!eq12(tmp[0], fpx)) {
+  if (!arreq(tmp[0], fpx, 12)) {
     return 1;
   }
 
   // Assert f / f == one
   fq12_div(f, f, tmp[0]);
-  if (!eq12(tmp[0], one)) {
+  if (!arreq(tmp[0], one, 12)) {
     return 1;
   }
 
@@ -120,7 +141,7 @@ int test_fq12() {
   fq12_add(tmp[0], tmp[1], tmp[2]);
   fq12_add(one, x, tmp[0]);
   fq12_div(tmp[0], f, tmp[1]);
-  if (!eq12(tmp[1], tmp[2])) {
+  if (!arreq(tmp[1], tmp[2], 12)) {
     return 1;
   }
 
@@ -130,13 +151,13 @@ int test_fq12() {
   fq12_add(tmp[0], tmp[1], tmp[2]);
   fq12_add(one, x, tmp[0]);
   fq12_mul(tmp[0], f, tmp[1]);
-  if (!eq12(tmp[1], tmp[2])) {
+  if (!arreq(tmp[1], tmp[2], 12)) {
     return 1;
   }
 
   // Assert x ** (FIELD_MODULUS ** 12 - 1) == one
   fq12_pow(x, fq_sub(fq_pow(FIELD_MODULUS, 12), 1), tmp[0]);
-  if (!eq12(tmp[0], one)) {
+  if (!arreq(tmp[0], one, 12)) {
     return 1;
   }
 
@@ -249,7 +270,7 @@ int test_g12() {
 
   // Assert twist(G2) == G12;
   g2::twist(G2, tmp[0]);
-  if (!(eq12(tmp[0][0], G12[0]) && eq12(tmp[0][1], G12[1])) && eq12(tmp[0][2], G12[2])) {
+  if (!(arreq(tmp[0][0], G12[0], 12) && arreq(tmp[0][1], G12[1], 2)) && arreq(tmp[0][2], G12[2], 2)) {
     return 1;
   }
 
@@ -300,7 +321,7 @@ int test_linefunc() {
   uint256 two[3] = {};
   uint256 trd[3] = {};
   uint256 out[2] = {};
-  cp3(G1, one);
+  arrcp(G1, one, 3);
   g1::doubl2(G1, two);
   g1::mul(G1, 3, trd);
 
@@ -386,7 +407,7 @@ int test_pairing() {
   _pairing(G2, G1, p1);
   _pairing(G2, neg_g1, pn1);
   fq12_mul(p1, pn1, tmp);
-  if (!eq12(tmp, FQ12_ONE)) {
+  if (!arreq(tmp, FQ12_ONE, 12)) {
     return 1;
   }
 
@@ -395,21 +416,21 @@ int test_pairing() {
   // assert pn1 == np1
   uint256 neg_g2[3][2] = {};
   uint256 np1[12] = {};
-  cp2(G2[0], neg_g2[0]);
+  arrcp(G2[0], neg_g2[0], 2);
   fq2_neg(G2[1], neg_g2[1]);
-  cp2(G2[2], neg_g2[2]);
+  arrcp(G2[2], neg_g2[2], 2);
   _pairing(neg_g2, G1, np1);
   fq12_mul(p1, np1, tmp);
-  if (!eq12(tmp, FQ12_ONE)) {
+  if (!arreq(tmp, FQ12_ONE, 12)) {
     return 1;
   }
-  if (!eq12(pn1, np1)) {
+  if (!arreq(pn1, np1, 12)) {
     return 1;
   }
 
   // assert p1 ** curve_order == FQ12.one()
   fq12_pow(p1, CURVE_ORDER, tmp);
-  if (!eq12(tmp, FQ12_ONE)) {
+  if (!arreq(tmp, FQ12_ONE, 12)) {
     return 1;
   }
 
@@ -418,12 +439,12 @@ int test_pairing() {
   g1::mul(G1, 2, g1_mul_2);
   _pairing(G2, g1_mul_2, p2);
   fq12_mul(p1, p1, tmp);
-  if (!eq12(tmp, p2)) {
+  if (!arreq(tmp, p2, 12)) {
     return 1;
   }
 
   // # assert p1 != p2 and p1 != np1 and p2 != np1
-  if ((eq12(p1, p2) || eq12(p1, np1) || eq12(p2, np1))) {
+  if ((arreq(p1, p2, 12) || arreq(p1, np1, 12) || arreq(p2, np1, 12))) {
     return 1;
   }
 
@@ -432,7 +453,7 @@ int test_pairing() {
   g2::mul(G2, 2, g2_mul_2);
   _pairing(g2_mul_2, G1, po2);
   fq12_mul(p1, p1, tmp);
-  if (!eq12(tmp, po2)) {
+  if (!arreq(tmp, po2, 12)) {
     return 1;
   }
 
@@ -446,7 +467,7 @@ int test_pairing() {
   uint256 po3[12] = {};
   g1::mul(G1, 999, g1_mul_999);
   _pairing(G2, g1_mul_999, po3);
-  if (!eq12(p3, po3)) {
+  if (!arreq(p3, po3, 12)) {
     return 1;
   }
 
@@ -466,7 +487,7 @@ int test_misc() {
   tmp[1][0][1] = h256("0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
   tmp[1][1][0] = h256("0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
   tmp[1][1][1] = h256("0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
-  if (!(eq2(tmp[1][0], tmp[2][0]) && eq2(tmp[1][1], tmp[2][1]))) {
+  if (!(arreq(tmp[1][0], tmp[2][0], 2) && arreq(tmp[1][1], tmp[2][1], 2))) {
     return 1;
   }
 
@@ -488,7 +509,7 @@ int test_misc() {
   tmp[1][1][0] = h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa");
   pairing(tmp[1], tmp[0][0], out[1]);
   fq12_mul(out[0], out[1], out[2]);
-  if (!eq12(out[2], FQ12_ONE)) {
+  if (!arreq(out[2], FQ12_ONE, 12)) {
     return 1;
   }
 
@@ -496,6 +517,8 @@ int test_misc() {
 }
 
 int main() {
+  if (test_invmod())
+    return 1;
   if (test_fq())
     return 1;
   if (test_fq2())

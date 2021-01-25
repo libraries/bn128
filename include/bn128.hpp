@@ -15,49 +15,6 @@ namespace bn128 {
 
 using uint256 = intx::uint256;
 
-constexpr inline uint256 h256(const char *s) { return intx::from_string<uint256>(s); }
-
-inline bool eq2(const uint256 x[2], const uint256 y[2]) { return x[0] == y[0] && x[1] == y[1]; }
-
-inline bool eq12(const uint256 x[12], const uint256 y[12]) {
-  return x[0] == y[0] && x[1] == y[1] && x[2] == y[2] && x[3] == y[3] && x[4] == y[4] && x[5] == y[5] && x[6] == y[6] &&
-         x[7] == y[7] && x[8] == y[8] && x[9] == y[9] && x[10] == y[10] && x[11] == y[11];
-}
-
-inline void cp2(const uint256 x[2], uint256 r[2]) {
-  r[0] = x[0];
-  r[1] = x[1];
-}
-
-inline void cp3(const uint256 x[3], uint256 r[3]) {
-  r[0] = x[0];
-  r[1] = x[1];
-  r[2] = x[2];
-}
-
-inline void cp12(const uint256 x[12], uint256 r[12]) {
-  r[0] = x[0];
-  r[1] = x[1];
-  r[2] = x[2];
-  r[3] = x[3];
-  r[4] = x[4];
-  r[5] = x[5];
-  r[6] = x[6];
-  r[7] = x[7];
-  r[8] = x[8];
-  r[9] = x[9];
-  r[10] = x[10];
-  r[11] = x[11];
-}
-
-inline void cp13(const uint256 x[13], uint256 r[13]) {
-  cp12(x, r);
-  r[12] = x[12];
-}
-
-// The prime modulus of the field.
-constexpr uint256 FIELD_MODULUS = h256("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
-
 inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::addmod(x, y, n); }
 
 inline uint256 _submod(const uint256 &x, const uint256 &y, const uint256 &n) { return _addmod(x, n - y, n); }
@@ -67,21 +24,20 @@ inline uint256 _negmod(const uint256 &x, const uint256 &n) { return n - x; }
 inline uint256 _mulmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::mulmod(x, y, n); }
 
 // Extended euclidean algorithm to find modular inverses for integers.
+// The return value INV_X satisfies: (X * INV_X) % N = 1
 inline uint256 _invmod(const uint256 &x, const uint256 &n) {
-  uint256 t = 0;
-  uint256 newt = 1;
-  uint256 r = n;
-  uint256 newr = x;
-  while (newr) {
-    uint256 q = r / newr;
-    uint256 oldt = t;
-    t = newt;
-    newt = _submod(oldt, _mulmod(q, newt, n), n);
-    uint256 oldr = r;
-    r = newr;
-    newr = oldr - q * newr;
+  uint256 lm = 1, hm = 0;
+  uint256 lo = x % n, hi = n;
+  while (lo > 1) {
+    uint256 r = hi / lo;
+    uint256 nm = _submod(hm, _mulmod(lm, r, n), n);
+    uint256 nw = hi - lo * r;
+    hm = lm;
+    lm = nm;
+    hi = lo;
+    lo = nw;
   }
-  return t;
+  return lm % n;
 }
 
 inline uint256 _divmod(const uint256 &x, const uint256 &y, const uint256 &n) { return _mulmod(x, _invmod(y, n), n); }
@@ -97,6 +53,84 @@ inline uint256 _powmod(const uint256 &x, const uint256 &y, const uint256 &n) {
     return _powmod(_mulmod(x, x, n), y >> 1, n);
   }
 }
+
+constexpr inline uint256 h256(const char *s) { return intx::from_string<uint256>(s); }
+
+inline bool arreq(const uint256 *x, const uint256 *y, const int size) {
+  switch (size) {
+  case 12:
+    if (y[11] != x[11])
+      return 0;
+  case 11:
+    if (y[10] != x[10])
+      return 0;
+  case 10:
+    if (y[9] != x[9])
+      return 0;
+  case 9:
+    if (y[8] != x[8])
+      return 0;
+  case 8:
+    if (y[7] != x[7])
+      return 0;
+  case 7:
+    if (y[6] != x[6])
+      return 0;
+  case 6:
+    if (y[5] != x[5])
+      return 0;
+  case 5:
+    if (y[4] != x[4])
+      return 0;
+  case 4:
+    if (y[3] != x[3])
+      return 0;
+  case 3:
+    if (y[2] != x[2])
+      return 0;
+  case 2:
+    if (y[1] != x[1])
+      return 0;
+  case 1:
+    if (y[0] != x[0])
+      return 0;
+  }
+  return 1;
+}
+
+inline void arrcp(const uint256 *x, uint256 *r, const int size) {
+  switch (size) {
+  case 13:
+    r[12] = x[12];
+  case 12:
+    r[11] = x[11];
+  case 11:
+    r[10] = x[10];
+  case 10:
+    r[9] = x[9];
+  case 9:
+    r[8] = x[8];
+  case 8:
+    r[7] = x[7];
+  case 7:
+    r[6] = x[6];
+  case 6:
+    r[5] = x[5];
+  case 5:
+    r[4] = x[4];
+  case 4:
+    r[3] = x[3];
+  case 3:
+    r[2] = x[2];
+  case 2:
+    r[1] = x[1];
+  case 1:
+    r[0] = x[0];
+  }
+}
+
+// The prime modulus of the field.
+constexpr uint256 FIELD_MODULUS = h256("0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47");
 
 inline uint256 fq_add(const uint256 &x, const uint256 &y) { return _addmod(x, y, FIELD_MODULUS); }
 
@@ -174,9 +208,9 @@ void fq2_dic(const uint256 x[2], const uint256 &c, uint256 r[2]) {
 
 void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
   if (y == 0) {
-    cp2(FQ2_ONE, r);
+    arrcp(FQ2_ONE, r, 2);
   } else if (y == 1) {
-    cp2(x, r);
+    arrcp(x, r, 2);
   } else if (y & 1) {
     uint256 t[2];
     fq2_mul(x, x, t);
@@ -230,7 +264,7 @@ void fq12_mul(const uint256 x[12], const uint256 y[12], uint256 r[12]) {
     b[exp] = fq_sub(b[exp], fq_mul(top, FQ12_MODULUS_COEFFS[0]));
     b[exp + 6] = fq_sub(b[exp + 6], fq_mul(top, FQ12_MODULUS_COEFFS[6]));
   }
-  cp12(b, r);
+  arrcp(b, r, 12);
 }
 
 void fq12_muc(const uint256 x[12], const uint256 &c, uint256 r[12]) {
@@ -252,7 +286,7 @@ void _poly_rounded_div(const uint256 a[13], const uint256 b[13], uint256 r[13]) 
   int dega = _deg(a);
   int degb = _deg(b);
   uint256 t[13] = {};
-  cp13(a, t);
+  arrcp(a, t, 13);
   uint256 o[13] = {0};
   for (int i = dega - degb; i > -1; i--) {
     o[i] = fq_add(o[i], fq_div(t[degb + i], b[degb]));
@@ -270,10 +304,10 @@ void fq12_inv(const uint256 x[12], uint256 r[12]) {
   uint256 lm[13] = {1, 0};
   uint256 hm[13] = {0};
   uint256 low[13] = {};
-  cp12(x, low);
+  arrcp(x, low, 12);
   low[12] = 0;
   uint256 high[13] = {};
-  cp12(FQ12_MODULUS_COEFFS, high);
+  arrcp(FQ12_MODULUS_COEFFS, high, 12);
   high[12] = 1;
 
   uint256 temp[13] = {};
@@ -318,9 +352,9 @@ void fq12_dic(const uint256 x[12], const uint256 &c, uint256 r[12]) {
 
 void fq12_pow(const uint256 x[12], const uint256 &y, uint256 r[12]) {
   if (y == 0) {
-    cp12(FQ12_ONE, r);
+    arrcp(FQ12_ONE, r, 12);
   } else if (y == 1) {
-    cp12(x, r);
+    arrcp(x, r, 12);
   } else if (y & 1) {
     uint256 t[12];
     fq12_mul(x, x, t);
@@ -422,11 +456,11 @@ void doubl2(const uint256 pt[3], uint256 r[3]) {
 // Elliptic curve addition
 void add(const uint256 p1[3], const uint256 p2[3], uint256 r[3]) {
   if (p1[2] == 0) {
-    cp3(p2, r);
+    arrcp(p2, r, 3);
     return;
   }
   if (p2[2] == 0) {
-    cp3(p1, r);
+    arrcp(p1, r, 3);
     return;
   }
   uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
@@ -484,7 +518,7 @@ void mul(const uint256 pt[3], const uint256 &n, uint256 r[3]) {
     r[1] = 1;
     r[2] = 0;
   } else if (n == 1) {
-    cp3(pt, r);
+    arrcp(pt, r, 3);
   } else if (n & 1) {
     uint256 t[2][3];
     doubl2(pt, t[0]);
@@ -502,7 +536,7 @@ void mul(const uint256 pt[3], const uint256 &n, uint256 r[3]) {
 namespace g2 {
 
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[3][2]) { return eq2(pt[2], FQ2_ZERO); }
+inline bool is_inf(const uint256 pt[3][2]) { return arreq(pt[2], FQ2_ZERO, 2); }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[3][2]) {
@@ -521,7 +555,7 @@ bool is_on_curve(const uint256 pt[3][2]) {
   fq2_mul(t[1], z, t[2]);
   fq2_mul(t[2], B2, t[1]);
 
-  return eq2(t[0], t[1]);
+  return arreq(t[0], t[1], 2);
 }
 
 bool eq(const uint256 x[3][2], const uint256 y[3][2]) {
@@ -530,12 +564,12 @@ bool eq(const uint256 x[3][2], const uint256 y[3][2]) {
   uint256 t[2][2];
   fq2_mul(x1, z2, t[0]);
   fq2_mul(x2, z1, t[1]);
-  if (!eq2(t[0], t[1])) {
+  if (!arreq(t[0], t[1], 2)) {
     return 0;
   }
   fq2_mul(y1, z2, t[0]);
   fq2_mul(y2, z1, t[1]);
-  if (!eq2(t[0], t[1])) {
+  if (!arreq(t[0], t[1], 2)) {
     return 0;
   }
   return 1;
@@ -698,8 +732,8 @@ void twist(const uint256 pt[3][2], uint256 r[3][12]) {
   uint256 x[2], y[2], z[2];
   fq2_muc(_y, 9, x);
   fq2_sub(_x, x, x);
-  cp2(_y, y);
-  cp2(_z, z);
+  arrcp(_y, y, 2);
+  arrcp(_z, z, 2);
 
   uint256 nx[12] = {xcoeffs[0], 0, 0, 0, 0, 0, xcoeffs[1], 0, 0, 0, 0, 0};
   uint256 ny[12] = {ycoeffs[0], 0, 0, 0, 0, 0, ycoeffs[1], 0, 0, 0, 0, 0};
@@ -710,7 +744,7 @@ void twist(const uint256 pt[3][2], uint256 r[3][12]) {
   fq12_mul(W, W, r[1]);
   fq12_mul(W, r[1], r[2]);
   fq12_mul(ny, r[2], r[1]);
-  cp12(nz, r[2]);
+  arrcp(nz, r[2], 12);
 }
 
 } // namespace g2
@@ -718,7 +752,7 @@ void twist(const uint256 pt[3][2], uint256 r[3][12]) {
 namespace g12 {
 
 // Check if a point is the point at infinity
-inline bool is_inf(const uint256 pt[3][12]) { return eq12(pt[2], FQ12_ZERO); }
+inline bool is_inf(const uint256 pt[3][12]) { return arreq(pt[2], FQ12_ZERO, 12); }
 
 // Check that a point is on the curve defined by y**2 == x**3 + b.
 bool is_on_curve(const uint256 pt[3][12]) {
@@ -737,7 +771,7 @@ bool is_on_curve(const uint256 pt[3][12]) {
   fq12_mul(t[1], z, t[2]);
   fq12_mul(t[2], B12, t[1]);
 
-  return eq12(t[0], t[1]);
+  return arreq(t[0], t[1], 12);
 }
 
 bool eq(const uint256 x[3][12], const uint256 y[3][12]) {
@@ -746,12 +780,12 @@ bool eq(const uint256 x[3][12], const uint256 y[3][12]) {
   uint256 t[2][12];
   fq12_mul(x1, z2, t[0]);
   fq12_mul(x2, z1, t[1]);
-  if (!eq12(t[0], t[1])) {
+  if (!arreq(t[0], t[1], 12)) {
     return 0;
   }
   fq12_mul(y1, z2, t[0]);
   fq12_mul(y2, z1, t[1]);
-  if (!eq12(t[0], t[1])) {
+  if (!arreq(t[0], t[1], 12)) {
     return 0;
   }
   return 1;
@@ -817,15 +851,15 @@ void add(const uint256 p1[3][12], const uint256 p2[3][12], uint256 r[3][12]) {
   fq12_mul(temp2[0], temp1[2], temp2[0]);
   fq12_mul(temp1[0], temp2[2], r[2]);
 
-  if (eq12(temp2[0], r[2])) {
-    if (eq12(temp2[1], r[1])) {
+  if (arreq(temp2[0], r[2], 12)) {
+    if (arreq(temp2[1], r[1], 12)) {
       doubl2(temp1, r);
       return;
     }
 
-    cp12(FQ12_ONE, r[0]);
-    cp12(FQ12_ONE, r[1]);
-    cp12(FQ12_ZERO, r[2]);
+    arrcp(FQ12_ONE, r[0], 12);
+    arrcp(FQ12_ONE, r[1], 12);
+    arrcp(FQ12_ZERO, r[2], 12);
     return;
   }
 
@@ -868,13 +902,13 @@ void add(const uint256 p1[3][12], const uint256 p2[3][12], uint256 r[3][12]) {
 // Elliptic curve point multiplication.
 void mul(const uint256 pt[3][12], const uint256 &n, uint256 r[3][12]) {
   if (n == 0) {
-    cp12(FQ12_ONE, r[0]);
-    cp12(FQ12_ONE, r[1]);
-    cp12(FQ12_ZERO, r[2]);
+    arrcp(FQ12_ONE, r[0], 12);
+    arrcp(FQ12_ONE, r[1], 12);
+    arrcp(FQ12_ZERO, r[2], 12);
   } else if (n == 1) {
-    cp12(pt[0], r[0]);
-    cp12(pt[1], r[1]);
-    cp12(pt[2], r[2]);
+    arrcp(pt[0], r[0], 12);
+    arrcp(pt[1], r[1], 12);
+    arrcp(pt[2], r[2], 12);
   } else if (n & 1) {
     uint256 t[2][3][12];
     doubl2(pt, t[0]);
@@ -933,7 +967,7 @@ void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12], const uint256 
   fq12_mul(x2, z1, temp[0]);
   fq12_mul(x1, z2, temp[1]);
   fq12_sub(temp[0], temp[1], m_denominator);
-  if (!eq12(m_denominator, FQ12_ZERO)) {
+  if (!arreq(m_denominator, FQ12_ZERO, 12)) {
     fq12_mul(xt, z1, temp[0]);
     fq12_mul(x1, zt, temp[1]);
     fq12_sub(temp[0], temp[1], temp[2]);
@@ -945,7 +979,7 @@ void linefunc12(const uint256 p1[3][12], const uint256 p2[3][12], const uint256 
     fq12_sub(temp[3], temp[0], r[0]);
     fq12_mul(zt, z1, temp[0]);
     fq12_mul(temp[0], m_denominator, r[1]);
-  } else if (eq12(m_numerator, FQ12_ZERO)) {
+  } else if (arreq(m_numerator, FQ12_ZERO, 12)) {
     fq12_mul(x1, x1, temp[0]);
     fq12_muc(temp[0], 3, m_numerator);
     fq12_mul(y1, z1, temp[0]);
@@ -976,7 +1010,7 @@ constexpr int PSEUDO_BINARY_ENCODING[65] = {0,  0, 0, 1,  0, 1, 0, -1, 0, 0, 1, 
 void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 r[12]) {
   uint256 o[12] = {1, 0};
   uint256 t[12] = {};
-  cp12(x, t);
+  arrcp(x, t, 12);
   intx::uint<4096> other = y;
   while (other > 0) {
     if (other & 1) {
@@ -985,25 +1019,25 @@ void final_exponentiate(const uint256 x[12], const intx::uint<4096> &y, uint256 
     other >>= 1;
     fq12_mul(t, t, t);
   }
-  cp12(o, r);
+  arrcp(o, r, 12);
 }
 
 // Main miller loop
 void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12]) {
   if (g12::is_inf(Q) || g12::is_inf(P)) {
-    cp12(FQ12_ONE, r);
+    arrcp(FQ12_ONE, r, 12);
     return;
   }
 
   uint256 R[3][12] = {};
-  cp12(Q[0], R[0]);
-  cp12(Q[1], R[1]);
-  cp12(Q[2], R[2]);
+  arrcp(Q[0], R[0], 12);
+  arrcp(Q[1], R[1], 12);
+  arrcp(Q[2], R[2], 12);
 
   uint256 f_num[12] = {};
   uint256 f_den[12] = {};
-  cp12(FQ12_ONE, f_num);
-  cp12(FQ12_ONE, f_den);
+  arrcp(FQ12_ONE, f_num, 12);
+  arrcp(FQ12_ONE, f_den, 12);
 
   uint256 nd1[2][12] = {};
   uint256 nd2[2][12] = {};
@@ -1020,40 +1054,40 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
     fq12_mul(nd2[0], nd1[1], f_den);
 
     g12::doubl2(R, temp);
-    cp12(temp[0], R[0]);
-    cp12(temp[1], R[1]);
-    cp12(temp[2], R[2]);
+    arrcp(temp[0], R[0], 12);
+    arrcp(temp[1], R[1], 12);
+    arrcp(temp[2], R[2], 12);
 
     if (b == 1) {
       linefunc12(R, Q, P, nd1);
 
       fq12_mul(f_num, nd1[0], nd2[0]);
-      cp12(nd2[0], f_num);
+      arrcp(nd2[0], f_num, 12);
 
       fq12_mul(f_den, nd1[1], nd2[0]);
-      cp12(nd2[0], f_den);
+      arrcp(nd2[0], f_den, 12);
 
       g12::add(R, Q, temp);
-      cp12(temp[0], R[0]);
-      cp12(temp[1], R[1]);
-      cp12(temp[2], R[2]);
+      arrcp(temp[0], R[0], 12);
+      arrcp(temp[1], R[1], 12);
+      arrcp(temp[2], R[2], 12);
     } else if (b == -1) {
       uint256 nQ[3][12] = {};
-      cp12(Q[0], nQ[0]);
+      arrcp(Q[0], nQ[0], 12);
       fq12_neg(Q[1], nQ[1]);
-      cp12(Q[2], nQ[2]);
+      arrcp(Q[2], nQ[2], 12);
 
       linefunc12(R, nQ, P, nd1);
       fq12_mul(f_num, nd1[0], nd2[0]);
-      cp12(nd2[0], f_num);
+      arrcp(nd2[0], f_num, 12);
 
       fq12_mul(f_den, nd1[1], nd2[0]);
-      cp12(nd2[0], f_den);
+      arrcp(nd2[0], f_den, 12);
 
       g12::add(R, nQ, temp);
-      cp12(temp[0], R[0]);
-      cp12(temp[1], R[1]);
-      cp12(temp[2], R[2]);
+      arrcp(temp[0], R[0], 12);
+      arrcp(temp[1], R[1], 12);
+      arrcp(temp[2], R[2], 12);
     }
   }
 
@@ -1070,9 +1104,9 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
 
   linefunc12(R, Q1, P, nd1);
   g12::add(R, Q1, temp);
-  cp12(temp[0], R[0]);
-  cp12(temp[1], R[1]);
-  cp12(temp[2], R[2]);
+  arrcp(temp[0], R[0], 12);
+  arrcp(temp[1], R[1], 12);
+  arrcp(temp[2], R[2], 12);
 
   linefunc12(R, nQ2, P, nd2);
   fq12_mul(f_den, nd1[1], temp[0]);
@@ -1094,7 +1128,7 @@ void _miller_loop(const uint256 Q[3][12], const uint256 P[3][12], uint256 r[12])
 // Pairing computation
 void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
   if (g2::is_inf(Q) || g1::is_inf(P)) {
-    cp12(FQ12_ONE, r);
+    arrcp(FQ12_ONE, r, 12);
     return;
   }
 

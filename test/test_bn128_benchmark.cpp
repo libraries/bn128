@@ -16,7 +16,7 @@ int main() {
   tmp[1][0][1] = h256("0x1142585a23028cbe57783f890d1a2f6837049fce43c9b3b5e8e14c40a43c617a");
   tmp[1][1][0] = h256("0x215a23c8a96e1ca11d52cf6e2d6ada4ed01ee7e09b06dbc7f3315e7e6e73b919");
   tmp[1][1][1] = h256("0x0edac9f3a977530e28d4a385e614bcb7a8f9c3c3cb65707c1b90b5ea86174512");
-  if (!(eq2(tmp[1][0], tmp[2][0]) && eq2(tmp[1][1], tmp[2][1]))) {
+  if (!(arreq(tmp[1][0], tmp[2][0], 2) && arreq(tmp[1][1], tmp[2][1], 2))) {
     return 1;
   }
   return 0;
