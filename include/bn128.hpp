@@ -1116,7 +1116,6 @@ void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
 }
 
 void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
-  // The point at infinity is encoded as (0, 0)
   uint256 x[3];
   g1::from_affine(p1, x);
   uint256 y[3];
