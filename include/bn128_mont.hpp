@@ -75,6 +75,24 @@ inline bool arreq(const uint256 *x, const uint256 *y, const int size) {
   }
   return 1;
 }
+
+inline void arrcp(const uint256 *x, uint256 *r, const int size) {
+  switch (size) {
+  case 13: r[12] = x[12];
+  case 12: r[11] = x[11];
+  case 11: r[10] = x[10];
+  case 10: r[9]  = x[9];
+  case 9:  r[8]  = x[8];
+  case 8:  r[7]  = x[7];
+  case 7:  r[6]  = x[6];
+  case 6:  r[5]  = x[5];
+  case 5:  r[4]  = x[4];
+  case 4:  r[3]  = x[3];
+  case 3:  r[2]  = x[2];
+  case 2:  r[1]  = x[1];
+  case 1:  r[0]  = x[0];
+  }
+}
 // clang-format on
 
 // The prime modulus of the field.
@@ -114,6 +132,7 @@ inline uint256 mont_encode(const uint256 &x) { return REDC(_mulmod(x, R_SQUARD, 
 
 inline uint256 mont_decode(const uint256 &x) { return REDC(_mulmod(x, 1, FIELD_MODULUS)); }
 
+constexpr uint256 FQ_ZERO = 0;
 #define FQ_ONE_HEX "0x0e0a77c19a07df2f666ea36f7879462c0a78eb28f5c70b3dd35d438dc58f0d9d"
 constexpr uint256 FQ_ONE = h256(FQ_ONE_HEX);
 
@@ -127,10 +146,13 @@ inline uint256 fq_inv(const uint256 &x) { return fq_mul(_invmod(x, FIELD_MODULUS
 
 inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
+inline uint256 fq_square(const uint256 &x) {return fq_mul(x, x); }
+
 // FQ_NON_RESIDUE = mont_encode(FIELD_MODULUS - 1);
 #define FQ_NON_RESIDUE_HEX "0x2259d6b14729c0fa51e1a247090812318d087f6872aabf4f68c3488912edefaa"
 constexpr uint256 FQ_NON_RESIDUE = h256(FQ_NON_RESIDUE_HEX);
-constexpr uint256 FQ2_ONE[2] = {FQ_ONE, 0};
+constexpr uint256 FQ2_ZERO[2] = {FQ_ZERO, FQ_ZERO};
+constexpr uint256 FQ2_ONE[2] = {FQ_ONE, FQ_ZERO};
 
 inline void fq2_add(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   uint256 a = fq_add(x[0], y[0]);
@@ -175,7 +197,7 @@ inline void fq2_inv(const uint256 x[2], uint256 r[2]) {
   r[1] = fq_neg(fq_mul(x[1], t));
 }
 
-inline void fq2_squr(const uint256 x[2], uint256 r[2]) {
+inline void fq2_square(const uint256 x[2], uint256 r[2]) {
   uint256 a = fq_mul(x[0], x[1]);
   uint256 b = fq_mul(fq_add(fq_mul(x[1], FQ_NON_RESIDUE), x[0]), fq_add(x[0], x[1]));
   uint256 c = fq_sub(fq_sub(b, a), fq_mul(a, FQ_NON_RESIDUE));
@@ -184,18 +206,134 @@ inline void fq2_squr(const uint256 x[2], uint256 r[2]) {
   r[1] = d;
 }
 
+// G1_COEFF = mont_encode(3)
+#define G1_COEFF_HEX "0x2a1f6744ce179d8e334bea4e696bd2841f6ac17ae15521b97a17caa950ad28d7"
+constexpr uint256 G1_COEFF = h256(G1_COEFF_HEX);
+constexpr uint256 G1_ZERO[3] = {0, FQ_ONE, 0};
+#define G1_ONE_1_HEX "0x1c14ef83340fbe5eccdd46def0f28c5814f1d651eb8e167ba6ba871b8b1e1b3a"
+constexpr uint256 G1_ONE[3] = {1, h256(G1_ONE_1_HEX), 1};
+
+void g1_from_affine(const uint256 x[2], uint256 r[3]) {
+  r[0] = x[0];
+  r[1] = x[1];
+  if (x[0] == FQ_ZERO && x[1] == FQ_ZERO) {
+    r[2] = FQ_ZERO;
+  } else {
+    r[2] = FQ_ONE;
+  }
+}
+
+void g1_from_jacobian(const uint256 x[3], uint256 r[2]) {
+  if (x[2] == FQ_ZERO) {
+    r[0] = FQ_ZERO;
+    r[1] = FQ_ZERO;
+  } else if (x[2] == FQ_ONE) {
+    arrcp(x, r, 2);
+  } else {
+    uint256 zinv = fq_inv(x[2]);
+    uint256 zinv_squared = fq_mul(zinv, zinv);
+    r[0] = fq_mul(x[0], zinv_squared);
+    r[1] = fq_mul(x[1], fq_mul(zinv_squared, zinv));
+  }
+}
+
+void g1_double(const uint256 x[3], uint256 r[3]) {
+  // A = X * X
+  uint256 a = fq_square(x[0]);
+  // B = Y * Y
+  uint256 b = fq_square(x[1]);
+  // C = B * B
+  uint256 c = fq_square(b);
+  // D = (X + B) ** 2 - A - C
+  uint256 d = fq_sub(fq_sub(fq_square(fq_add(x[0], b)), a), c);
+  // D = D + D
+  d = fq_add(d, d);
+  // E = A + A + A
+  uint256 e = fq_add(fq_add(a, a), a);
+  // F = E * E
+  uint256 f = fq_square(e);
+  // X3 = F - (D + D)
+  uint256 x3 = fq_sub(f, fq_add(d, d));
+  // C8 = C + C + C + C + C + C + C + C
+  uint256 c8 = fq_add(c, c);
+  c8 = fq_add(c8, c8);
+  c8 = fq_add(c8, c8);
+  // YX = Y * Z
+  uint256 yz = fq_mul(x[1], x[2]);
+  // R[0] = X3
+  r[0] = x3;
+  // R[1] = E * (D - X3) - C8
+  r[1] = fq_sub(fq_mul(e, fq_sub(d, x3)), c8);
+  // R[2] = YZ + YZ
+  r[2] = fq_add(yz, yz);
+}
+
+void g1_add(const uint256 x[3], const uint256 y[3], uint256 r[3]) {
+  if (x[2] == FQ_ZERO) {
+    arrcp(y, r, 3);
+    return;
+  }
+  if (y[2] == FQ_ZERO) {
+    arrcp(x, r, 3);
+    return;
+  }
+  uint256 z1_squared = fq_square(x[2]);
+  uint256 z2_squared = fq_square(y[2]);
+  uint256 u1 = fq_mul(x[0], z2_squared);
+  uint256 u2 = fq_mul(y[0], z1_squared);
+  uint256 z1_cubed = fq_mul(x[2], z1_squared);
+  uint256 z2_cubed = fq_mul(y[2], z2_squared);
+  uint256 s1 = fq_mul(x[1], z2_cubed);
+  uint256 s2 = fq_mul(y[1], z1_cubed);
+  if (u1 == u2 && s1 == s2) {
+    g1_double(x, r);
+    return;
+  }
+  uint256 h = fq_sub(u2, u1);
+  uint256 s2_minus_s1 = fq_sub(s2, s1);
+  uint256 i = fq_square(fq_add(h, h));
+  uint256 j = fq_mul(h, i);
+  uint256 k = fq_add(s2_minus_s1, s2_minus_s1);
+  uint256 v = fq_mul(u1, i);
+  uint256 s1_j = fq_mul(s1, j);
+  uint256 x3 = fq_sub(fq_sub(fq_square(k), j), fq_add(v, v));
+  r[0] = x3;
+  r[1] = fq_sub(fq_mul(k, fq_sub(v, x3)), fq_add(s1_j, s1_j));
+  r[2] = fq_mul(fq_sub(fq_sub(fq_square(fq_add(x[2], y[2])), z1_squared), z2_squared), h);
+}
+
+void g1_mul(const uint256 x[3], const uint256 &y, uint256 r[3]) {
+  uint256 a[3] = {G1_ZERO[0], G1_ZERO[1], G1_ZERO[2]};
+
+  bool found_one = 0;
+  for (int i = 255; i > -1; i--) {
+    if (found_one) {
+      g1_double(a, a);
+    }
+    if (y & (uint256{1} << i)) {
+      found_one = 1;
+      g1_add(a, x, a);
+    }
+  }
+  arrcp(a, r, 3);
+}
+
 // G2_COEFF_B0 = mont_encode(0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5)
 // G2_COEFF_B1 = mont_encode(0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2)
-#define G2_COEFF_B0 "0x2514c6324384a86d26b7edf049755260020b1b273633535d3bf938e377b802a8"
-#define G2_COEFF_B1 "0x0141b9ce4a688d4dd749d0dd22ac00aa65f0b37d93ce0d3e38e7ecccd1dcff67"
-constexpr uint256 G2_COEFF_B[2] = {h256(G2_COEFF_B0), h256(G2_COEFF_B1)};
+#define G2_COEFF_B0_HEX "0x2514c6324384a86d26b7edf049755260020b1b273633535d3bf938e377b802a8"
+#define G2_COEFF_B1_HEX "0x0141b9ce4a688d4dd749d0dd22ac00aa65f0b37d93ce0d3e38e7ecccd1dcff67"
+constexpr uint256 G2_COEFF_B[2] = {h256(G2_COEFF_B0_HEX), h256(G2_COEFF_B1_HEX)};
 
-#define G2_ONE_00 "0x19573841af96503bfbb8264797811adfdceb1935497b01728e83b5d102bc2026"
-#define G2_ONE_01 "0x14fef0833aea7b6b09e950fc52a02f866043dd5a5802d8c4afb4737da84c6140"
-#define G2_ONE_10 "0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6"
-#define G2_ONE_11 "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
-constexpr uint256 G2_ONE[3][2] = {{h256(G2_ONE_00), h256(G2_ONE_01)}, {h256(G2_ONE_10), h256(G2_ONE_11)}, {FQ_ONE, 0}};
 constexpr uint256 G2_ZERO[3][2] = {{0, 0}, {FQ2_ONE[0], FQ2_ONE[1]}, {0, 0}};
+#define G2_ONE_00_HEX "0x19573841af96503bfbb8264797811adfdceb1935497b01728e83b5d102bc2026"
+#define G2_ONE_01_HEX "0x14fef0833aea7b6b09e950fc52a02f866043dd5a5802d8c4afb4737da84c6140"
+#define G2_ONE_10_HEX "0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6"
+#define G2_ONE_11_HEX "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
+constexpr uint256 G2_ONE[3][2] = {
+  {h256(G2_ONE_00_HEX), h256(G2_ONE_01_HEX)},
+  {h256(G2_ONE_10_HEX), h256(G2_ONE_11_HEX)},
+  {FQ_ONE, 0}
+};
 
 void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
   r[0][0] = x[0][0];
@@ -207,19 +345,17 @@ void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
 }
 
 void g2_from_jacobian(const uint256 x[3][2], uint256 r[2][2]) {
-  if (x[2][0] == 0 && x[2][1] == 0) {
+  if (arreq(x[2], FQ2_ZERO, 2)) {
     assert(0);
-  } else if (x[2][0] == 1 && x[2][1] == 0) {
-    r[0][0] = x[0][0];
-    r[0][1] = x[0][1];
-    r[1][0] = x[1][0];
-    r[1][1] = x[1][1];
+  } else if (arreq(x[2], FQ2_ONE, 2)) {
+    arrcp(x[0], r[0], 2);
+    arrcp(x[1], r[1], 2);
   } else {
     uint256 zinv[2] = {};
     fq2_inv(x[2], zinv);
 
     uint256 zinv_squared[2] = {};
-    fq2_squr(zinv, zinv_squared);
+    fq2_square(zinv, zinv_squared);
 
     uint256 zinv_squared_mul_zinv[2] = {};
     fq2_mul(zinv_squared, zinv, zinv_squared_mul_zinv);
@@ -232,18 +368,18 @@ void g2_from_jacobian(const uint256 x[3][2], uint256 r[2][2]) {
 void g2_double(const uint256 x[3][2], uint256 r[3][2]) {
   // A = X * X
   uint256 a[2];
-  fq2_squr(x[0], a);
+  fq2_square(x[0], a);
   // B = Y * Y
   uint256 b[2];
-  fq2_squr(x[1], b);
+  fq2_square(x[1], b);
   // C = B * B
   uint256 c[2];
-  fq2_squr(b, c);
+  fq2_square(b, c);
   // D = (X + B) ** 2 - A - C
   uint256 d[2];
   uint256 z[2];
   fq2_add(x[0], b, z);
-  fq2_squr(z, d);
+  fq2_square(z, d);
   fq2_sub(d, a, z);
   fq2_sub(z, c, d);
   // D = D + D
@@ -254,7 +390,7 @@ void g2_double(const uint256 x[3][2], uint256 r[3][2]) {
   fq2_add(z, a, e);
   // F = E * E
   uint256 f[2];
-  fq2_squr(e, f);
+  fq2_square(e, f);
   // X3 = F - (D + D)
   uint256 x3[2];
   fq2_add(d, d, z);
@@ -264,7 +400,7 @@ void g2_double(const uint256 x[3][2], uint256 r[3][2]) {
   fq2_add(c, c, c8);
   fq2_add(c8, c8, c8);
   fq2_add(c8, c8, c8);
-  // YX = Y * Z
+  // YZ = Y * Z
   uint256 yz[2];
   fq2_mul(x[1], x[2], yz);
   // R[0] = X3
@@ -299,10 +435,10 @@ void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
   }
 
   uint256 z1_squared[2];
-  fq2_squr(x[2], z1_squared);
+  fq2_square(x[2], z1_squared);
 
   uint256 z2_squared[2];
-  fq2_squr(y[2], z2_squared);
+  fq2_square(y[2], z2_squared);
 
   uint256 u1[2];
   fq2_mul(x[0], z2_squared, u1);
@@ -336,13 +472,13 @@ void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
   uint256 i[2];
   uint256 z[2];
   fq2_add(h, h, z);
-  fq2_squr(z, i);
+  fq2_square(z, i);
 
   uint256 j[2];
   fq2_mul(h, i, j);
 
-  uint256 R[2];
-  fq2_add(s2_minus_s1, s2_minus_s1, R);
+  uint256 k[2];
+  fq2_add(s2_minus_s1, s2_minus_s1, k);
 
   uint256 v[2];
   fq2_mul(u1, i, v);
@@ -351,7 +487,7 @@ void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
   fq2_mul(s1, j, s1_j);
 
   uint256 x3[2];
-  fq2_squr(R, x3);
+  fq2_square(k, x3);
   fq2_sub(x3, j, x3);
   fq2_add(v, v, z);
   fq2_sub(x3, z, x3);
@@ -360,12 +496,12 @@ void g2_add(const uint256 x[3][2], const uint256 y[3][2], uint256 r[3][2]) {
   r[0][1] = x3[1];
   uint256 v_minus_x3[2];
   fq2_sub(v, x3, v_minus_x3);
-  fq2_mul(R, v_minus_x3, r[2]);
+  fq2_mul(k, v_minus_x3, r[2]);
   fq2_add(s1_j, s1_j, z);
   fq2_sub(r[2], z, r[1]);
 
   fq2_add(x[2], y[2], r[2]);
-  fq2_squr(r[2], z);
+  fq2_square(r[2], z);
   fq2_sub(z, z1_squared, r[2]);
   fq2_sub(r[2], z2_squared, z);
   fq2_mul(z, h, r[2]);
@@ -403,6 +539,28 @@ void g2_mul(const uint256 x[3][2], const uint256 &y, uint256 r[3][2]) {
   r[1][1] = a[1][1];
   r[2][0] = a[2][0];
   r[2][1] = a[2][1];
+}
+
+void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
+  uint256 x[3] = {mont_encode(p1[0]), mont_encode(p1[1])};
+  g1_from_affine(x, x);
+  uint256 y[3] = {mont_encode(p2[0]), mont_encode(p2[1])};
+  g1_from_affine(y, y);
+  uint256 o[3];
+  g1_add(x, y, o);
+  g1_from_jacobian(o, r);
+  r[0] = mont_decode(r[0]);
+  r[1] = mont_decode(r[1]);
+}
+
+void alt_bn128_mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
+  uint256 x[3] = {mont_encode(pt[0]), mont_encode(pt[1])};
+  g1_from_affine(x, x);
+  uint256 o[3];
+  g1_mul(x, n, o);
+  g1_from_jacobian(o, r);
+  r[0] = mont_decode(r[0]);
+  r[1] = mont_decode(r[1]);
 }
 
 } // namespace bn128
