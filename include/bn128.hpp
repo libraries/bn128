@@ -345,28 +345,22 @@ constexpr uint256 B12[12] = {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 // Generator for curve over FQ
 constexpr uint256 G1[3] = {1, 2, 1};
 // Generator for twisted curve over FQ2
-constexpr uint256 G2[3][2] = {{
-                                  h256("0x1800deef121f1e76426a00665e5c4479674322d4f"
-                                       "75edadd46debd5cd992f6ed"),
-                                  h256("0x198e9393920d483a7260bfb731fb5d25f1aa49333"
-                                       "5a9e71297e485b7aef312c2"),
-                              },
-                              {
-                                  h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690"
-                                       "c43d37b4ce6cc0166fa7daa"),
-                                  h256("0x090689d0585ff075ec9e99ad690c3395bc4b31337"
-                                       "0b38ef355acdadcd122975b"),
-                              },
-                              {1, 0}};
+#define G2_00 "0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"
+#define G2_01 "0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"
+#define G2_10 "0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"
+#define G2_11 "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"
+constexpr uint256 G2[3][2] = {{h256(G2_00), h256(G2_01)}, {h256(G2_10), h256(G2_11)}, {1, 0}};
 
 // "Twist" a point in E(FQ2) into a point in E(FQ12)
 constexpr uint256 W[12] = {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+#define G12_02 "0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"
+#define G12_08 "0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"
+#define G12_12 "0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"
+#define G12_18 "0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"
 constexpr uint256 G12[3][12] = {
-    {0, 0, h256("0x23f336fd559fb538d6949f86240cb7f7ddcda4df1e9eaff81c78c659ed78407e"), 0, 0, 0, 0, 0,
-     h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2"), 0, 0, 0},
-    {0, 0, 0, h256("0x2256233882903a1969b895d4df602107743001bce6d76207c214326bbdbd2605"), 0, 0, 0, 0, 0,
-     h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b"), 0, 0},
+    {0, 0, h256(G12_02), 0, 0, 0, 0, 0, h256(G12_08), 0, 0, 0},
+    {0, 0, 0, h256(G12_12), 0, 0, 0, 0, 0, h256(G12_18), 0, 0},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
@@ -386,16 +380,31 @@ bool is_on_curve(const uint256 pt[3]) {
   return l == r;
 }
 
-bool eq(const uint256 x[3], const uint256 y[3]) {
-  uint256 x1 = x[0], y1 = x[1], z1 = x[2];
-  uint256 x2 = y[0], y2 = y[1], z2 = y[2];
+bool eq(const uint256 p1[3], const uint256 p2[3]) {
+  uint256 x1 = p1[0], y1 = p1[1], z1 = p1[2];
+  uint256 x2 = p2[0], y2 = p2[1], z2 = p2[2];
   return (fq_mul(x1, z2) == fq_mul(x2, z1)) && (fq_mul(y1, z2) == fq_mul(y2, z1));
 }
 
-void from_jacobian(const uint256 x[3], uint256 r[3]) {
-  uint256 invz = fq_inv(x[2]);
-  r[0] = fq_mul(x[0], invz);
-  r[1] = fq_mul(x[1], invz);
+void from_affine(const uint256 pt[2], uint256 r[3]) {
+  r[0] = pt[0];
+  r[1] = pt[1];
+  if (pt[0] == 0 && pt[1] == 0) {
+    r[2] = 0;
+  } else {
+    r[2] = 1;
+  }
+}
+
+void from_jacobian(const uint256 pt[3], uint256 r[2]) {
+  if (pt[2] == 0) {
+    r[0] = 0;
+    r[1] = 0;
+    return;
+  }
+  uint256 invz = fq_inv(pt[2]);
+  r[0] = fq_mul(pt[0], invz);
+  r[1] = fq_mul(pt[1], invz);
 }
 
 void doubl2(const uint256 pt[3], uint256 r[3]) {
@@ -419,6 +428,7 @@ void doubl2(const uint256 pt[3], uint256 r[3]) {
   uint256 newy = fq_sub(newy_l, newy_r);
   // newz = 8 * S * S_squared
   uint256 newz = fq_mul(fq_mul(8, S), S_squared);
+
   r[0] = newx;
   r[1] = newy;
   r[2] = newz;
@@ -1115,37 +1125,20 @@ void _pairing(const uint256 Q[3][2], const uint256 P[3], uint256 r[12]) {
 
 void alt_bn128_add(const uint256 p1[2], const uint256 p2[2], uint256 r[2]) {
   // The point at infinity is encoded as (0, 0)
-  uint256 x[3] = {p1[0], p1[1], 1};
-  if (arreq(p1, FQ2_ZERO, 2)) {
-    x[2] = 0;
-  }
-  uint256 y[3] = {p2[0], p2[1], 1};
-  if (arreq(p2, FQ2_ZERO, 2)) {
-    y[2] = 0;
-  }
+  uint256 x[3];
+  g1::from_affine(p1, x);
+  uint256 y[3];
+  g1::from_affine(p2, y);
   uint256 o[3];
-  // The point at infinity is encoded as (0, 0)
   g1::add(x, y, o);
-  if (o[2] == 0) {
-    r[0] = 0;
-    r[1] = 0;
-    return;
-  }
   g1::from_jacobian(o, r);
 }
 
 void alt_bn128_mul(const uint256 pt[2], const uint256 &n, uint256 r[2]) {
-  uint256 x[3] = {pt[0], pt[1], 1};
-  if (arreq(pt, FQ2_ZERO, 2)) {
-    x[2] = 0;
-  }
+  uint256 x[3];
+  g1::from_affine(pt, x);
   uint256 o[3];
   g1::mul(x, n, o);
-  if (o[2] == 0) {
-    r[0] = 0;
-    r[1] = 0;
-    return;
-  }
   g1::from_jacobian(o, r);
 }
 
