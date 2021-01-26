@@ -5,14 +5,6 @@
 
 namespace bn128 {
 
-// Maybe there is a better way to implement this macro, but this is enough for now.
-#ifdef __riscv
-#undef assert
-#define assert(x)                                                                                                      \
-  if (!x)                                                                                                              \
-  exit(2)
-#endif
-
 using uint256 = intx::uint256;
 
 inline uint256 _addmod(const uint256 &x, const uint256 &y, const uint256 &n) { return intx::addmod(x, y, n); }
@@ -112,8 +104,8 @@ inline uint256 fq_div(const uint256 &x, const uint256 &y) { return _divmod(x, y,
 inline uint256 fq_pow(const uint256 &x, const uint256 &y) { return _powmod(x, y, FIELD_MODULUS); }
 
 // The quadratic extension field.
-constexpr uint256 FQ2_ONE[2] = {1, 0};
 constexpr uint256 FQ2_ZERO[2] = {0, 0};
+constexpr uint256 FQ2_ONE[2] = {1, 0};
 
 void fq2_add(const uint256 x[2], const uint256 y[2], uint256 r[2]) {
   uint256 a = fq_add(x[0], y[0]);
@@ -188,8 +180,8 @@ void fq2_pow(const uint256 x[2], const uint256 &y, uint256 r[2]) {
 }
 
 // The 12th-degree extension field.
-constexpr uint256 FQ12_ONE[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 constexpr uint256 FQ12_ZERO[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+constexpr uint256 FQ12_ONE[12] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 // The modulus of the polynomial in this representation of FQ12.
 constexpr uint256 FQ12_MODULUS_COEFFS[12] = {82, 0, 0, 0, 0, 0, FIELD_MODULUS - 18, 0, 0, 0, 0, 0};
