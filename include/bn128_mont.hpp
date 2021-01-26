@@ -62,16 +62,16 @@ inline bool arreq(const uint256 *x, const uint256 *y, const int size) {
   switch (size) {
   case 12: if (y[11] != x[11]) return 0;
   case 11: if (y[10] != x[10]) return 0;
-  case 10: if (y[9] != x[9]) return 0;
-  case 9: if (y[8] != x[8]) return 0;
-  case 8: if (y[7] != x[7]) return 0;
-  case 7: if (y[6] != x[6]) return 0;
-  case 6: if (y[5] != x[5]) return 0;
-  case 5: if (y[4] != x[4]) return 0;
-  case 4: if (y[3] != x[3]) return 0;
-  case 3: if (y[2] != x[2]) return 0;
-  case 2: if (y[1] != x[1]) return 0;
-  case 1: if (y[0] != x[0]) return 0;
+  case 10: if (y[9]  != x[9])  return 0;
+  case 9:  if (y[8]  != x[8])  return 0;
+  case 8:  if (y[7]  != x[7])  return 0;
+  case 7:  if (y[6]  != x[6])  return 0;
+  case 6:  if (y[5]  != x[5])  return 0;
+  case 5:  if (y[4]  != x[4])  return 0;
+  case 4:  if (y[3]  != x[3])  return 0;
+  case 3:  if (y[2]  != x[2])  return 0;
+  case 2:  if (y[1]  != x[1])  return 0;
+  case 1:  if (y[0]  != x[0])  return 0;
   }
   return 1;
 }
