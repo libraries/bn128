@@ -548,11 +548,16 @@ bool eq(const uint256 x[3][2], const uint256 y[3][2]) {
   return 1;
 }
 
-void from_jacobian(const uint256 pt1[3][2], uint256 pt2[2][2]) {
+void from_jacobian(const uint256 pt[3][2], uint256 r[2][2]) {
+  if (arreq(pt[2], FQ2_ZERO, 2)) {
+    arrcp(FQ2_ZERO, r[0], 2);
+    arrcp(FQ2_ZERO, r[1], 2);
+    return;
+  }
   uint256 invz[2];
-  fq2_inv(pt1[2], invz);
-  fq2_mul(pt1[0], invz, pt2[0]);
-  fq2_mul(pt1[1], invz, pt2[1]);
+  fq2_inv(pt[2], invz);
+  fq2_mul(pt[0], invz, r[0]);
+  fq2_mul(pt[1], invz, r[1]);
 }
 
 void doubl2(const uint256 pt[3][2], uint256 r[3][2]) {
