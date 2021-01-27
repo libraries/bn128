@@ -146,7 +146,7 @@ inline uint256 fq_inv(const uint256 &x) { return fq_mul(_invmod(x, FIELD_MODULUS
 
 inline uint256 fq_neg(const uint256 &x) { return _negmod(x, FIELD_MODULUS); }
 
-inline uint256 fq_square(const uint256 &x) {return fq_mul(x, x); }
+inline uint256 fq_square(const uint256 &x) { return fq_mul(x, x); }
 
 // FQ_NON_RESIDUE = mont_encode(FIELD_MODULUS - 1);
 #define FQ_NON_RESIDUE_HEX "0x2259d6b14729c0fa51e1a247090812318d087f6872aabf4f68c3488912edefaa"
@@ -330,10 +330,7 @@ constexpr uint256 G2_ZERO[3][2] = {{0, 0}, {FQ2_ONE[0], FQ2_ONE[1]}, {0, 0}};
 #define G2_ONE_10_HEX "0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6"
 #define G2_ONE_11_HEX "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
 constexpr uint256 G2_ONE[3][2] = {
-  {h256(G2_ONE_00_HEX), h256(G2_ONE_01_HEX)},
-  {h256(G2_ONE_10_HEX), h256(G2_ONE_11_HEX)},
-  {FQ_ONE, 0}
-};
+    {h256(G2_ONE_00_HEX), h256(G2_ONE_01_HEX)}, {h256(G2_ONE_10_HEX), h256(G2_ONE_11_HEX)}, {FQ_ONE, 0}};
 
 void g2_from_affine(const uint256 x[2][2], uint256 r[3][2]) {
   r[0][0] = x[0][0];
