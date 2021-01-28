@@ -347,7 +347,6 @@ FQ2 operator*(const FQ2 &x, const FQ2 &y) {
 }
 
 bool operator==(const FQ2 &x, const FQ2 &y) { return x.c0 == y.c0 && x.c1 == y.c1; }
-
 bool operator!=(const FQ2 &x, const FQ2 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
 
 constexpr FQ2 FQ2_ZERO = FQ2{c0 : FQ_ZERO, c1 : FQ_ZERO};
@@ -446,7 +445,6 @@ FQ6 operator*(const FQ6 &x, const FQ6 &y) {
 }
 
 bool operator==(const FQ6 &x, const FQ6 &y) { return x.c0 == y.c0 && x.c1 == y.c1 && x.c2 == y.c2; }
-
 bool operator!=(const FQ6 &x, const FQ6 &y) { return x.c0 != y.c0 || x.c1 != y.c1 || x.c2 != y.c2; }
 
 struct FQ12 {
@@ -505,6 +503,9 @@ FQ12 operator*(const FQ12 &x, const FQ12 &y) {
   };
 }
 
+bool operator==(const FQ12 &x, const FQ12 &y) { return x.c0 == y.c0 && x.c1 == y.c1; }
+bool operator!=(const FQ12 &x, const FQ12 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
+
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 
@@ -546,9 +547,6 @@ G2 G2Affine::into() const {
   FQ2 c = (x == FQ2_ZERO && y == FQ2_ZERO) ? FQ2_ZERO : FQ2_ONE;
   return G2{x : a, y : b, z : c};
 }
-
-bool operator==(const G2Affine &x, const G2Affine &y) { return x.x == y.x && x.y == y.y; }
-bool operator!=(const G2Affine &x, const G2Affine &y) { return x.x != y.x || x.y != y.y; }
 
 G2Affine G2::affine() const {
   if (z == FQ2_ZERO) {
