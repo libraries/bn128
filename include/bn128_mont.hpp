@@ -280,6 +280,13 @@ G1 G1::mul(const uint256 &c) const {
 #define HEX_G2_ONE_11 "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
 #define HEX_FQ2_NON_RESIDUE_0 "0x1d9598e8a7e398572943337e3940c6d12f3d6f4dd31bd011f60647ce410d7ff7"
 #define HEX_FQ2_NON_RESIDUE_1 "0x0e0a77c19a07df2f666ea36f7879462c0a78eb28f5c70b3dd35d438dc58f0d9d"
+#define HEX_FQ_TWO_INV "0x1f37631a3d9cbfac8f5f7492fcfd4f44d0fd2add2f1c6ae587bee7d24f060572"
+#define HEX_TWIST_MUL_BY_Q_X_0 "0x1956bcd8118214ec7a007127242e0991347f91c8a9aa6454b5773b104563ab30"
+#define HEX_TWIST_MUL_BY_Q_X_1 "0x26694fbb4e82ebc3b6e713cdfae0ca3aaa1c7b6d89f891416e849f1ea0aa4757"
+#define HEX_TWIST_MUL_BY_Q_Y_0 "0x253570bea500f8dd31a9d1b6f9645366bb30f162e133bacbe4bbdd0c2936b629"
+#define HEX_TWIST_MUL_BY_Q_Y_1 "0x2c87200285defecc6d16bd27bb7edc6b07affd117826d1dba1d77ce45ffe77c7"
+
+constexpr FQ FQ_TWO_INV = FQ(h256(HEX_FQ_TWO_INV));
 
 struct FQ2 {
   FQ c0;
@@ -297,23 +304,17 @@ struct FQ2 {
     c1 = y;
   }
 
-  FQ2 inv() const {
-    FQ t = (c0.square() - c1.square().mul_by_non_residue()).inv();
-    return FQ2{
-      c0 : c0 * t,
-      c1 : -(c1 * t),
-    };
-  }
+  FQ2 inv() const;
 
-  FQ2 square() const {
-    FQ a = c0 * c1;
-    return FQ2{
-      c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - a - a.mul_by_non_residue(),
-      c1 : a + a,
-    };
-  }
+  FQ2 square() const;
+
+  FQ2 scale(FQ c) const;
+
+  FQ2 neg() const;
 
   FQ2 mul_by_non_residue() const;
+
+  FQ2 frobenius_map(uint64_t power) const;
 };
 
 FQ2 operator+(const FQ2 &x, const FQ2 &y) {
@@ -349,10 +350,53 @@ FQ2 operator*(const FQ2 &x, const FQ2 &y) {
 bool operator==(const FQ2 &x, const FQ2 &y) { return x.c0 == y.c0 && x.c1 == y.c1; }
 bool operator!=(const FQ2 &x, const FQ2 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
 
-constexpr FQ2 FQ2_ZERO = FQ2{c0 : FQ_ZERO, c1 : FQ_ZERO};
-constexpr FQ2 FQ2_ONE = FQ2{c0 : FQ_ONE, c1 : FQ_ZERO};
-constexpr FQ2 G2_COEFF_B = FQ2{c0 : FQ(h256(HEX_G2_COEFF_B0)), c1 : FQ(h256(HEX_G2_COEFF_B1))};
-constexpr FQ2 FQ2_NON_RESIDUE = FQ2{c0 : FQ(h256(HEX_FQ2_NON_RESIDUE_0)), c1 : FQ(h256(HEX_FQ2_NON_RESIDUE_1))};
+FQ2 FQ2::inv() const {
+  FQ t = (c0.square() - c1.square().mul_by_non_residue()).inv();
+  return FQ2{
+    c0 : c0 * t,
+    c1 : -(c1 * t),
+  };
+}
+
+FQ2 FQ2::square() const {
+  FQ a = c0 * c1;
+  return FQ2{
+    c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - a - a.mul_by_non_residue(),
+    c1 : a + a,
+  };
+}
+
+FQ2 FQ2::scale(FQ c) const {
+  return FQ2{
+    c0 : c0 * c,
+    c1 : c1 * c,
+  };
+}
+
+FQ2 FQ2::neg() const {
+  return FQ2{
+    c0 : -c0,
+    c1 : -c1,
+  };
+}
+
+FQ2 FQ2::frobenius_map(uint64_t power) const {
+  if (power % 2 == 0) {
+    return *this;
+  } else {
+    return FQ2{
+      c0 : c0,
+      c1 : c1.mul_by_non_residue(),
+    };
+  }
+}
+
+constexpr FQ2 FQ2_ZERO = FQ2(FQ_ZERO, FQ_ZERO);
+constexpr FQ2 FQ2_ONE = FQ2(FQ_ONE, FQ_ZERO);
+constexpr FQ2 G2_COEFF_B = FQ2(h256(HEX_G2_COEFF_B0), h256(HEX_G2_COEFF_B1));
+constexpr FQ2 FQ2_NON_RESIDUE = FQ2(h256(HEX_FQ2_NON_RESIDUE_0), h256(HEX_FQ2_NON_RESIDUE_1));
+constexpr FQ2 TWIST_MUL_BY_Q_X = FQ2(h256(HEX_TWIST_MUL_BY_Q_X_0), h256(HEX_TWIST_MUL_BY_Q_X_1));
+constexpr FQ2 TWIST_MUL_BY_Q_Y = FQ2(h256(HEX_TWIST_MUL_BY_Q_Y_0), h256(HEX_TWIST_MUL_BY_Q_Y_1));
 
 FQ2 FQ2::mul_by_non_residue() const { return *this * FQ2_NON_RESIDUE; }
 
@@ -369,44 +413,12 @@ struct FQ6 {
     c2 = z;
   }
 
-  FQ6 inv() const {
-    FQ2 a = c0.square() - c1 * c2.mul_by_non_residue();
-    FQ2 b = c2.square().mul_by_non_residue() - c0 * c1;
-    FQ2 c = c1.square() - c0 * c2;
-    FQ2 t = ((c2 * b + c1 * c).mul_by_non_residue() + c0 * a).inv();
-    return FQ6{
-      c0 : t * a,
-      c1 : t * b,
-      c2 : t * c,
-    };
-  }
+  FQ6 inv() const;
 
-  FQ6 square() const {
-    FQ2 s0 = c0.square();
-    FQ2 ab = c0 * c1;
-    FQ2 s1 = ab + ab;
-    FQ2 s2 = (c0 - c1 + c2).square();
-    FQ2 bc = c1 * c2;
-    FQ2 s3 = bc + bc;
-    FQ2 s4 = c2.square();
-    return FQ6{
-      c0 : s0 + s3.mul_by_non_residue(),
-      c1 : s1 + s4.mul_by_non_residue(),
-      c2 : s1 + s2 + s3 - s0 - s4,
-    };
-  }
+  FQ6 square() const;
 
-  FQ6 mul_by_non_residue() const {
-    return FQ6{
-      c0 : c2.mul_by_non_residue(),
-      c1 : c0,
-      c2 : c1,
-    };
-  }
+  FQ6 mul_by_non_residue() const;
 };
-
-constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
-constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
 
 FQ6 operator+(const FQ6 &x, const FQ6 &y) {
   return FQ6{
@@ -447,6 +459,44 @@ FQ6 operator*(const FQ6 &x, const FQ6 &y) {
 bool operator==(const FQ6 &x, const FQ6 &y) { return x.c0 == y.c0 && x.c1 == y.c1 && x.c2 == y.c2; }
 bool operator!=(const FQ6 &x, const FQ6 &y) { return x.c0 != y.c0 || x.c1 != y.c1 || x.c2 != y.c2; }
 
+FQ6 FQ6::inv() const {
+  FQ2 a = c0.square() - c1 * c2.mul_by_non_residue();
+  FQ2 b = c2.square().mul_by_non_residue() - c0 * c1;
+  FQ2 c = c1.square() - c0 * c2;
+  FQ2 t = ((c2 * b + c1 * c).mul_by_non_residue() + c0 * a).inv();
+  return FQ6{
+    c0 : t * a,
+    c1 : t * b,
+    c2 : t * c,
+  };
+}
+
+FQ6 FQ6::square() const {
+  FQ2 s0 = c0.square();
+  FQ2 ab = c0 * c1;
+  FQ2 s1 = ab + ab;
+  FQ2 s2 = (c0 - c1 + c2).square();
+  FQ2 bc = c1 * c2;
+  FQ2 s3 = bc + bc;
+  FQ2 s4 = c2.square();
+  return FQ6{
+    c0 : s0 + s3.mul_by_non_residue(),
+    c1 : s1 + s4.mul_by_non_residue(),
+    c2 : s1 + s2 + s3 - s0 - s4,
+  };
+}
+
+FQ6 FQ6::mul_by_non_residue() const {
+  return FQ6{
+    c0 : c2.mul_by_non_residue(),
+    c1 : c0,
+    c2 : c1,
+  };
+}
+
+constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
+constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
+
 struct FQ12 {
   FQ6 c0;
   FQ6 c1;
@@ -456,21 +506,9 @@ struct FQ12 {
     c1 = y;
   }
 
-  FQ12 square() const {
-    FQ6 ab = c0 * c1;
-    return FQ12{
-      c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - ab - ab.mul_by_non_residue(),
-      c1 : ab + ab,
-    };
-  }
+  FQ12 square() const;
 
-  FQ12 inv() const {
-    FQ6 t = (c0.square() - c1.square().mul_by_non_residue()).inv();
-    return FQ12{
-      c0 : c0 * t,
-      c1 : -(c1 * t),
-    };
-  }
+  FQ12 inv() const;
 };
 
 FQ12 operator+(const FQ12 &x, const FQ12 &y) {
@@ -506,17 +544,41 @@ FQ12 operator*(const FQ12 &x, const FQ12 &y) {
 bool operator==(const FQ12 &x, const FQ12 &y) { return x.c0 == y.c0 && x.c1 == y.c1; }
 bool operator!=(const FQ12 &x, const FQ12 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
 
+FQ12 FQ12::square() const {
+  FQ6 ab = c0 * c1;
+  return FQ12{
+    c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - ab - ab.mul_by_non_residue(),
+    c1 : ab + ab,
+  };
+}
+
+FQ12 FQ12::inv() const {
+  FQ6 t = (c0.square() - c1.square().mul_by_non_residue()).inv();
+  return FQ12{
+    c0 : c0 * t,
+    c1 : -(c1 * t),
+  };
+}
+
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 
 struct G2Affine;
 struct G2;
+struct EllCoeffs;
+struct G2Precomp;
 
 struct G2Affine {
   FQ2 x;
   FQ2 y;
 
   G2 into() const;
+
+  G2Precomp precompute() const;
+
+  G2Affine neg() const;
+
+  G2Affine mul_by_q() const;
 };
 
 struct G2 {
@@ -525,9 +587,26 @@ struct G2 {
   FQ2 z;
 
   G2Affine affine() const;
+
   G2 doubl2() const;
+
   G2 mul(const uint256 &c) const;
+
+  bool is_zero() const { return z == FQ2_ZERO; }
+
+  G2 neg() const;
+
+  EllCoeffs doubling_step_for_flipped_miller_loop();
+
+  EllCoeffs mixed_addition_step_for_flipped_miller_loop(const G2Affine &base);
 };
+
+G2Affine G2Affine::neg() const {
+  return G2Affine{
+    x : x,
+    y : -y,
+  };
+}
 
 constexpr G2 G2_ZERO = G2{
   x : FQ2_ZERO,
@@ -557,6 +636,25 @@ G2Affine G2::affine() const {
     FQ2 zinv = z.inv();
     FQ2 zinv_squared = zinv.square();
     return G2Affine{x : x * zinv_squared, y : y * (zinv_squared * zinv)};
+  }
+}
+
+G2Affine G2Affine::mul_by_q() const {
+  return G2Affine{
+    x : TWIST_MUL_BY_Q_X * x.frobenius_map(1),
+    y : TWIST_MUL_BY_Q_Y * y.frobenius_map(1),
+  };
+}
+
+G2 G2::neg() const {
+  if ((*this).is_zero()) {
+    return *this;
+  } else {
+    return G2{
+      x : x,
+      y : -y,
+      z : z,
+    };
   }
 }
 
@@ -632,6 +730,100 @@ G2 G2::mul(const uint256 &c) const {
   }
   return r;
 }
+
+struct EllCoeffs {
+  FQ2 ell_0;
+  FQ2 ell_vw;
+  FQ2 ell_vv;
+};
+
+EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) {
+  FQ2 d = x - z * base.x;
+  FQ2 e = y - z * base.y;
+  FQ2 f = d.square();
+  FQ2 g = e.square();
+  FQ2 h = d * f;
+  FQ2 i = x * f;
+  FQ2 j = z * g + h - (i + i);
+
+  x = d * j;
+  y = e * (i - j) - h * y;
+  z = z * h;
+
+  return EllCoeffs{
+    ell_0 : FQ2_NON_RESIDUE * (e * base.x - d * base.y),
+    ell_vw : e.neg(),
+    ell_vv : d,
+  };
+}
+
+EllCoeffs G2::doubling_step_for_flipped_miller_loop() {
+  FQ2 a = (x * y).scale(FQ_TWO_INV);
+  FQ2 b = y.square();
+  FQ2 c = z.square();
+  FQ2 d = c + c + c;
+  FQ2 e = G2_COEFF_B * d;
+  FQ2 f = e + e + e;
+  FQ2 g = (b + f).scale(FQ_TWO_INV);
+  FQ2 h = (y + z).square() - (b + c);
+  FQ2 i = e - b;
+  FQ2 j = x.square();
+  FQ2 e_sq = e.square();
+
+  x = a * (b - f);
+  y = g.square() - (e_sq + e_sq + e_sq);
+  z = b * h;
+
+  return EllCoeffs{
+    ell_0 : FQ2_NON_RESIDUE * i,
+    ell_vw : h.neg(),
+    ell_vv : j + j + j,
+  };
+}
+
+struct G2Precomp {
+  G2Affine q;
+  EllCoeffs *coeffs;
+};
+
+const int ATE_LOOP_COUNT_NAF[64] = {1, 0, 1, 0, 0, 0, 3, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 3, 0, 0,
+                                    0, 0, 0, 1, 0, 0, 3, 0, 1, 0, 0, 3, 0, 0, 0, 0, 3, 0, 1, 0, 0, 0,
+                                    3, 0, 3, 0, 0, 1, 0, 0, 0, 3, 0, 0, 3, 0, 1, 0, 1, 0, 0, 0};
+
+G2Precomp G2Affine::precompute() const {
+  G2 r = (*this).into();
+  EllCoeffs coeffs[102];
+
+  G2Affine q_neg = (*this).neg();
+  int idx = 0;
+  for (int j = 0; j < 64; j++) {
+    int i = ATE_LOOP_COUNT_NAF[j];
+    coeffs[idx] = r.doubling_step_for_flipped_miller_loop();
+    idx++;
+
+    if (i == 1) {
+      coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(*this);
+      idx++;
+    }
+    if (i == 3) {
+      coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q_neg);
+      idx++;
+    }
+  }
+
+  G2Affine q1 = (*this).mul_by_q();
+  G2Affine q2 = q1.mul_by_q().neg();
+
+  coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q1);
+  idx++;
+  coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q2);
+  idx++;
+
+  return G2Precomp{
+    q : (*this),
+    coeffs : coeffs,
+  };
+};
 
 // =====================================================================================================================
 // EIP 197 👆
