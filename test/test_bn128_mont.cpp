@@ -157,6 +157,46 @@ int test_fq2_square() {
   return 0;
 }
 
+int test_fq6_inv() {
+  FQ6 a = FQ6(FQ2(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"),
+                  h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2")),
+              FQ2(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
+                  h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b")),
+              FQ2(h256("0x047d62b471a91cfa91fb08d4344792a0355cc0471784adb20e9a99bf11286133"),
+                  h256("0x19c7a2f5e6eedf85ec5adff3e0c2028a52b78e15a2e081513a5e5c6309cf7cc2")));
+  FQ6 b = a.inv();
+  FQ6 c = FQ6(FQ2(h256("0x0d5804da621fee188d4d3175eaa049b655203f524bf4fc530ffc42d7f4d7c07b"),
+                  h256("0x07874ef0b6d425106deee51f93ea945fa531451e9ecdd39fdc5d89f19262006c")),
+              FQ2(h256("0x2a5e34d590461f51d853b6b6b01fc6cbdba22c3a4208d22eaae6076b4c1333ff"),
+                  h256("0x076f32da39aab611469d7d4544a7df049686b51f8e737fca55c94585b4589021")),
+              FQ2(h256("0x204254b4bd4e8d3a42d52806cf82352d89e92f532018efc71bae9146ba998d2b"),
+                  h256("0x2350e0848205f48d00eeac6d57bc144b14f99883e8a39d601e500d03bdc099c3")));
+  if (b != c) {
+    return 1;
+  }
+  return 0;
+}
+
+int test_fq6_square() {
+  FQ6 a = FQ6(FQ2(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"),
+                  h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2")),
+              FQ2(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
+                  h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b")),
+              FQ2(h256("0x047d62b471a91cfa91fb08d4344792a0355cc0471784adb20e9a99bf11286133"),
+                  h256("0x19c7a2f5e6eedf85ec5adff3e0c2028a52b78e15a2e081513a5e5c6309cf7cc2")));
+  FQ6 b = a.square();
+  FQ6 c = FQ6(FQ2(h256("0x2c1aa3c13cf206dd8e756e7a426504343c756ca4e891dd1a5b6124a4b95118ca"),
+                  h256("0x006eaa3f0885d6c6e94bec92fcac3f66d591ed269a575b6acf66d2e42adb2181")),
+              FQ2(h256("0x074720caa92f241f97477120e2a6e77ddf97f5c7333deb99559470dbb8bf8ca8"),
+                  h256("0x2b223b0bb9a271cc03a8b3971a892452cadbd19bb34b87a8db6429642cbb6304")),
+              FQ2(h256("0x2ad0378b5e1bb4ed1a58fe5d816d0578968d557ee449edae8190d0521a35379f"),
+                  h256("0x27756649b1a8aaff4c6886512d93b45e618ace5a2abf06df0f5ab6eb2287c9ac")));
+  if (b != c) {
+    return 1;
+  }
+  return 0;
+}
+
 int test_g2_jacobian_affine_conv() {
   FQ a00 = FQ(mont_encode(h256("0x1ecfd2dff2aad18798b64bdb0c2b50c9d73e6c05619e04cbf5b448fd98726880")));
   FQ a01 = FQ(mont_encode(h256("0x0e16c8d96362720af0916592be1b839a26f5e6b710f3ede0d8840d9a70eaf97f")));
@@ -650,6 +690,10 @@ int main() {
   if (test_fq2_inv())
     return 1;
   if (test_fq2_square())
+    return 1;
+  if (test_fq6_inv())
+    return 1;
+  if (test_fq6_square())
     return 1;
   if (test_g2_jacobian_affine_conv())
     return 1;

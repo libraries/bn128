@@ -118,6 +118,8 @@ struct FQ {
   inline FQ pow(const uint256 &y) const { return FQ{c0 : _powmod(c0, y, FIELD_MODULUS)}; }
 
   inline FQ square() const { return FQ{c0 : REDC(_mulmod(c0, c0, FIELD_MODULUS))}; }
+
+  inline FQ mul_by_non_residue() const;
 };
 
 inline FQ operator+(const FQ &x, const FQ &y) { return FQ{c0 : _addmod(x.c0, y.c0, FIELD_MODULUS)}; }
@@ -138,6 +140,8 @@ constexpr FQ FQ_ZERO = FQ(0);
 constexpr FQ FQ_ONE = FQ(h256(HEX_FQ_ONE));
 constexpr FQ FQ_NON_RESIDUE = FQ(h256(HEX_FQ_NON_RESIDUE));
 constexpr FQ G1_COEFF_B = FQ(h256(HEX_G1_COEFF));
+
+inline FQ FQ::mul_by_non_residue() const { return *this * FQ_NON_RESIDUE; }
 
 struct G1Affine;
 struct G1;
@@ -274,6 +278,8 @@ G1 G1::mul(const uint256 &c) const {
 #define HEX_G2_ONE_01 "0x14fef0833aea7b6b09e950fc52a02f866043dd5a5802d8c4afb4737da84c6140"
 #define HEX_G2_ONE_10 "0x28fd7eebae9e4206ff9e1a62231b7dfefe7fd297f59e9b78619dfa9d886be9f6"
 #define HEX_G2_ONE_11 "0x0da4a0e693fd648255f935be33351076dc57f922327d3cbb64095b56c71856ee"
+#define HEX_FQ2_NON_RESIDUE_0 "0x1d9598e8a7e398572943337e3940c6d12f3d6f4dd31bd011f60647ce410d7ff7"
+#define HEX_FQ2_NON_RESIDUE_1 "0x0e0a77c19a07df2f666ea36f7879462c0a78eb28f5c70b3dd35d438dc58f0d9d"
 
 struct FQ2 {
   FQ c0;
@@ -292,7 +298,7 @@ struct FQ2 {
   }
 
   FQ2 inv() const {
-    FQ t = (c0.square() - c1.square() * FQ_NON_RESIDUE).inv();
+    FQ t = (c0.square() - c1.square().mul_by_non_residue()).inv();
     return FQ2{
       c0 : c0 * t,
       c1 : -(c1 * t),
@@ -302,10 +308,12 @@ struct FQ2 {
   FQ2 square() const {
     FQ a = c0 * c1;
     return FQ2{
-      c0 : (c1 * FQ_NON_RESIDUE + c0) * (c0 + c1) - a - a * FQ_NON_RESIDUE,
+      c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - a - a.mul_by_non_residue(),
       c1 : a + a,
     };
   }
+
+  FQ2 mul_by_non_residue() const;
 };
 
 FQ2 operator+(const FQ2 &x, const FQ2 &y) {
@@ -333,7 +341,7 @@ FQ2 operator*(const FQ2 &x, const FQ2 &y) {
   FQ aa = x.c0 * y.c0;
   FQ bb = x.c1 * y.c1;
   return FQ2{
-    c0 : bb * FQ_NON_RESIDUE + aa,
+    c0 : bb.mul_by_non_residue() + aa,
     c1 : (x.c0 + x.c1) * (y.c0 + y.c1) - aa - bb,
   };
 }
@@ -345,6 +353,130 @@ bool operator!=(const FQ2 &x, const FQ2 &y) { return x.c0 != y.c0 || x.c1 != y.c
 constexpr FQ2 FQ2_ZERO = FQ2{c0 : FQ_ZERO, c1 : FQ_ZERO};
 constexpr FQ2 FQ2_ONE = FQ2{c0 : FQ_ONE, c1 : FQ_ZERO};
 constexpr FQ2 G2_COEFF_B = FQ2{c0 : FQ(h256(HEX_G2_COEFF_B0)), c1 : FQ(h256(HEX_G2_COEFF_B1))};
+constexpr FQ2 FQ2_NON_RESIDUE = FQ2{c0 : FQ(h256(HEX_FQ2_NON_RESIDUE_0)), c1 : FQ(h256(HEX_FQ2_NON_RESIDUE_1))};
+
+FQ2 FQ2::mul_by_non_residue() const { return *this * FQ2_NON_RESIDUE; }
+
+struct FQ6 {
+  FQ2 c0;
+  FQ2 c1;
+  FQ2 c2;
+
+  constexpr FQ6() {}
+
+  constexpr FQ6(FQ2 x, FQ2 y, FQ2 z) {
+    c0 = x;
+    c1 = y;
+    c2 = z;
+  }
+
+  FQ6 inv() const {
+    FQ2 a = c0.square() - c1 * c2.mul_by_non_residue();
+    FQ2 b = c2.square().mul_by_non_residue() - c0 * c1;
+    FQ2 c = c1.square() - c0 * c2;
+    FQ2 t = ((c2 * b + c1 * c).mul_by_non_residue() + c0 * a).inv();
+    return FQ6{
+      c0 : t * a,
+      c1 : t * b,
+      c2 : t * c,
+    };
+  }
+
+  FQ6 square() const {
+    FQ2 s0 = c0.square();
+    FQ2 ab = c0 * c1;
+    FQ2 s1 = ab + ab;
+    FQ2 s2 = (c0 - c1 + c2).square();
+    FQ2 bc = c1 * c2;
+    FQ2 s3 = bc + bc;
+    FQ2 s4 = c2.square();
+    return FQ6{
+      c0 : s0 + s3.mul_by_non_residue(),
+      c1 : s1 + s4.mul_by_non_residue(),
+      c2 : s1 + s2 + s3 - s0 - s4,
+    };
+  }
+
+  FQ6 mul_by_non_residue() const {
+    return FQ6{
+      c0 : c2.mul_by_non_residue(),
+      c1 : c0,
+      c2 : c1,
+    };
+  }
+};
+
+constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
+constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
+
+FQ6 operator+(const FQ6 &x, const FQ6 &y) {
+  return FQ6{
+    c0 : x.c0 + y.c0,
+    c1 : x.c1 + y.c1,
+    c2 : x.c2 + y.c2,
+  };
+}
+
+FQ6 operator-(const FQ6 &x, const FQ6 &y) {
+  return FQ6{
+    c0 : x.c0 - y.c0,
+    c1 : x.c1 - y.c1,
+    c2 : x.c2 - y.c2,
+  };
+}
+
+FQ6 operator-(const FQ6 &x) {
+  return FQ6{
+    c0 : -x.c0,
+    c1 : -x.c1,
+    c2 : -x.c2,
+  };
+}
+
+FQ6 operator*(const FQ6 &x, const FQ6 &y) {
+  FQ2 a_a = x.c0 * y.c0;
+  FQ2 b_b = x.c1 * y.c1;
+  FQ2 c_c = x.c2 * y.c2;
+
+  return FQ6{
+    c0 : ((x.c1 + x.c2) * (y.c1 + y.c2) - b_b - c_c) * FQ2_NON_RESIDUE + a_a,
+    c1 : (x.c0 + x.c1) * (y.c0 + y.c1) - a_a - b_b + c_c * FQ2_NON_RESIDUE,
+    c2 : (x.c0 + x.c2) * (y.c0 + y.c2) - a_a + b_b - c_c,
+  };
+}
+
+bool operator==(const FQ6 &x, const FQ6 &y) { return x.c0 == y.c0 && x.c1 == y.c1 && x.c2 == y.c2; }
+
+bool operator!=(const FQ6 &x, const FQ6 &y) { return x.c0 != y.c0 || x.c1 != y.c1 || x.c2 != y.c2; }
+
+struct FQ12 {
+  FQ6 c0;
+  FQ6 c1;
+
+  constexpr FQ12(FQ6 x, FQ6 y) {
+    c0 = x;
+    c1 = y;
+  }
+
+  FQ12 square() const {
+    FQ6 ab = c0 * c1;
+    return FQ12{
+      c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - ab - ab.mul_by_non_residue(),
+      c1 : ab + ab,
+    };
+  }
+
+  FQ12 inv() const {
+    FQ6 t = (c0.square() - c1.square().mul_by_non_residue()).inv();
+    return FQ12{
+      c0 : c0 * t,
+      c1 : -(c1 * t),
+    };
+  }
+};
+
+constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
+constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 
 struct G2Affine;
 struct G2;
