@@ -475,6 +475,36 @@ struct FQ12 {
   }
 };
 
+FQ12 operator+(const FQ12 &x, const FQ12 &y) {
+  return FQ12{
+    c0 : x.c0 + y.c0,
+    c1 : x.c1 + y.c1,
+  };
+}
+
+FQ12 operator-(const FQ12 &x, const FQ12 &y) {
+  return FQ12{
+    c0 : x.c0 - y.c0,
+    c1 : x.c1 - y.c1,
+  };
+}
+
+FQ12 operator-(const FQ12 &x) {
+  return FQ12{
+    c0 : -x.c0,
+    c1 : -x.c1,
+  };
+}
+
+FQ12 operator*(const FQ12 &x, const FQ12 &y) {
+  FQ6 aa = x.c0 * y.c0;
+  FQ6 bb = x.c1 * y.c1;
+  return FQ12{
+    c0 : bb.mul_by_non_residue() + aa,
+    c1 : (x.c0 + x.c1) * (y.c0 + y.c1) - aa - bb,
+  };
+}
+
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 
