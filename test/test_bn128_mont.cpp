@@ -672,40 +672,61 @@ int test_alt_bn128_mul() {
   return 0;
 }
 
+int test_alt_bn128_pairing() {
+  FQ a00 = FQ(mont_encode(h256("0x2276cf730cf493cd95d64677bbb75fc42db72513a4c1e387b476d056f80aa75f")));
+  FQ a01 = FQ(mont_encode(h256("0x1213d2149b006137fcfb23036606f848d638d576a120ca981b5b1a5f9300b3ee")));
+  FQ a10 = FQ(mont_encode(h256("0x096df1f82dff337dd5972e32a8ad43e28a78a96a823ef1cd4debe12b6552ea5f")));
+  FQ a11 = FQ(mont_encode(h256("0x21ee6226d31426322afcda621464d0611d226783262e21bb3bc86b537e986237")));
+  FQ b0 = FQ(mont_encode(h256("0x2eca0c7238bf16e83e7a1e6c5d49540685ff51380f309842a98561558019fc02")));
+  FQ b1 = FQ(mont_encode(h256("0x03d3260361bb8451de5ff5ecd17f010ff22f5c31cdf184e9020b06fa5997db84")));
+  G2Affine a = G2Affine{x : FQ2(a00, a01), y : FQ2(a10, a11)};
+  G1Affine b = G1Affine{x: b0, y: b1};
+  G2Precomp c = a.precompute();
+  // FQ12 d = c.miller_loop(b);
+
+  printf("%s\n", c.q.str().c_str());
+  printf("%s\n", c.coeffs[80].str().c_str());
+  // printf("%s\n", d.str().c_str());
+
+  return 0;
+}
+
 int main() {
-  if (test_invmod())
-    return 1;
-  if (test_powmod())
-    return 1;
-  if (test_constexpr())
-    return 1;
-  if (test_mont_encode_decode())
-    return 1;
-  if (test_fq_inv())
-    return 1;
-  if (test_fq_neg())
-    return 1;
-  if (test_fq2_mul())
-    return 1;
-  if (test_fq2_inv())
-    return 1;
-  if (test_fq2_square())
-    return 1;
-  if (test_fq6_inv())
-    return 1;
-  if (test_fq6_square())
-    return 1;
-  if (test_g2_jacobian_affine_conv())
-    return 1;
-  if (test_g2_double())
-    return 1;
-  if (test_g2_add())
-    return 1;
-  if (test_g2_mul())
-    return 1;
-  if (test_alt_bn128_add())
-    return 1;
-  if (test_alt_bn128_mul())
+  // if (test_invmod())
+  //   return 1;
+  // if (test_powmod())
+  //   return 1;
+  // if (test_constexpr())
+  //   return 1;
+  // if (test_mont_encode_decode())
+  //   return 1;
+  // if (test_fq_inv())
+  //   return 1;
+  // if (test_fq_neg())
+  //   return 1;
+  // if (test_fq2_mul())
+  //   return 1;
+  // if (test_fq2_inv())
+  //   return 1;
+  // if (test_fq2_square())
+  //   return 1;
+  // if (test_fq6_inv())
+  //   return 1;
+  // if (test_fq6_square())
+  //   return 1;
+  // if (test_g2_jacobian_affine_conv())
+  //   return 1;
+  // if (test_g2_double())
+  //   return 1;
+  // if (test_g2_add())
+  //   return 1;
+  // if (test_g2_mul())
+  //   return 1;
+  // if (test_alt_bn128_add())
+  //   return 1;
+  // if (test_alt_bn128_mul())
+  //   return 1;
+  if (test_alt_bn128_pairing())
     return 1;
   return 0;
 }

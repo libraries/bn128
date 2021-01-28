@@ -120,6 +120,10 @@ struct FQ {
   inline FQ square() const { return FQ{c0 : REDC(_mulmod(c0, c0, FIELD_MODULUS))}; }
 
   inline FQ mul_by_non_residue() const;
+
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 inline FQ operator+(const FQ &x, const FQ &y) { return FQ{c0 : _addmod(x.c0, y.c0, FIELD_MODULUS)}; }
@@ -142,6 +146,12 @@ constexpr FQ FQ_NON_RESIDUE = FQ(h256(HEX_FQ_NON_RESIDUE));
 constexpr FQ G1_COEFF_B = FQ(h256(HEX_G1_COEFF));
 
 inline FQ FQ::mul_by_non_residue() const { return *this * FQ_NON_RESIDUE; }
+
+#ifndef __riscv
+std::string FQ::str() const {
+  return "FQ(" + intx::hex(c0) + ")";
+}
+#endif
 
 struct G1Affine;
 struct G1;
@@ -315,6 +325,9 @@ struct FQ2 {
   FQ2 mul_by_non_residue() const;
 
   FQ2 frobenius_map(uint64_t power) const;
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 FQ2 operator+(const FQ2 &x, const FQ2 &y) {
@@ -390,6 +403,11 @@ FQ2 FQ2::frobenius_map(uint64_t power) const {
     };
   }
 }
+#ifndef __riscv
+std::string FQ2::str() const {
+  return "FQ2(" + c0.str() + ", " + c1.str() + ")";
+}
+#endif
 
 constexpr FQ2 FQ2_ZERO = FQ2(FQ_ZERO, FQ_ZERO);
 constexpr FQ2 FQ2_ONE = FQ2(FQ_ONE, FQ_ZERO);
@@ -418,6 +436,9 @@ struct FQ6 {
   FQ6 square() const;
 
   FQ6 mul_by_non_residue() const;
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 FQ6 operator+(const FQ6 &x, const FQ6 &y) {
@@ -493,6 +514,11 @@ FQ6 FQ6::mul_by_non_residue() const {
     c2 : c1,
   };
 }
+#ifndef __riscv
+std::string FQ6::str() const {
+  return "FQ6(" + c0.str() + ", " + c1.str() + ", " + c2.str() + ")";
+}
+#endif
 
 constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
 constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
@@ -509,6 +535,11 @@ struct FQ12 {
   FQ12 square() const;
 
   FQ12 inv() const;
+
+  FQ12 mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const;
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 FQ12 operator+(const FQ12 &x, const FQ12 &y) {
@@ -560,6 +591,79 @@ FQ12 FQ12::inv() const {
   };
 }
 
+FQ12 FQ12::mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const {
+  FQ2 z0 = c0.c0;
+  FQ2 z1 = c0.c1;
+  FQ2 z2 = c0.c2;
+  FQ2 z3 = c1.c0;
+  FQ2 z4 = c1.c1;
+  FQ2 z5 = c1.c2;
+
+  FQ2 x0 = ell_0;
+  FQ2 x2 = ell_vv;
+  FQ2 x4 = ell_vw;
+
+  FQ2 d0 = z0 * x0;
+  FQ2 d2 = z2 * x2;
+  FQ2 d4 = z4 * x4;
+  FQ2 t2 = z0 + z4;
+  FQ2 t1 = z0 + z2;
+  FQ2 s0 = z1 + z3 + z5;
+
+  FQ2 s1 = z1 * x2;
+  FQ2 t3 = s1 + d4;
+  FQ2 t4 = t3.mul_by_non_residue() + d0;
+  z0 = t4;
+
+  t3 = z5 * x4;
+  s1 = s1 + t3;
+  t3 = t3 + d2;
+  t4 = t3.mul_by_non_residue();
+  t3 = z1 * x0;
+  s1 = s1 + t3;
+  t4 = t4 + t3;
+  z1 = t4;
+
+  FQ2 t0 = x0 + x2;
+  t3 = t1 * t0 - d0 - d2;
+  t4 = z3 * x4;
+  s1 = s1 + t4;
+  t3 = t3 + t4;
+
+  t0 = z2 + z4;
+  z2 = t3;
+
+  t1 = x2 + x4;
+  t3 = t0 * t1 - d2 - d4;
+  t4 = t3.mul_by_non_residue();
+  t3 = z3 * x0;
+  s1 = s1 + t3;
+  t4 = t4 + t3;
+  z3 = t4;
+
+  t3 = z5 * x2;
+  s1 = s1 + t3;
+  t4 = t3.mul_by_non_residue();
+  t0 = x0 + x4;
+  t3 = t2 * t0 - d0 - d4;
+  t4 = t4 + t3;
+  z4 = t4;
+
+  t0 = x0 + x2 + x4;
+  t3 = s0 * t0 - s1;
+  z5 = t3;
+
+  return FQ12 {
+      c0: FQ6(z0, z1, z2),
+      c1: FQ6(z3, z4, z5),
+  };
+}
+#ifndef __riscv
+std::string FQ12::str() const {
+  return "FQ12(" + c0.str() + ", " + c1.str() + ")";
+}
+#endif
+
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 
@@ -579,6 +683,9 @@ struct G2Affine {
   G2Affine neg() const;
 
   G2Affine mul_by_q() const;
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 struct G2 {
@@ -607,6 +714,12 @@ G2Affine G2Affine::neg() const {
     y : -y,
   };
 }
+
+#ifndef __riscv
+std::string G2Affine::str() const {
+  return "G2Affine(" + x.str() + ", " + y.str() + ")";
+}
+#endif
 
 constexpr G2 G2_ZERO = G2{
   x : FQ2_ZERO,
@@ -735,6 +848,9 @@ struct EllCoeffs {
   FQ2 ell_0;
   FQ2 ell_vw;
   FQ2 ell_vv;
+#ifndef __riscv
+  std::string str() const;
+#endif
 };
 
 EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) {
@@ -752,8 +868,8 @@ EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) 
 
   return EllCoeffs{
     ell_0 : FQ2_NON_RESIDUE * (e * base.x - d * base.y),
-    ell_vw : e.neg(),
-    ell_vv : d,
+    ell_vw : d,
+    ell_vv : e.neg(),
   };
 }
 
@@ -781,9 +897,17 @@ EllCoeffs G2::doubling_step_for_flipped_miller_loop() {
   };
 }
 
+#ifndef __riscv
+std::string EllCoeffs::str() const {
+  return "EllCoeffs(" + ell_0.str() + ", " + ell_vw.str() + ", " + ell_vv.str() + ")";
+}
+#endif
+
 struct G2Precomp {
   G2Affine q;
   EllCoeffs *coeffs;
+
+  FQ12 miller_loop(const G1Affine &g1) const;
 };
 
 const int ATE_LOOP_COUNT_NAF[64] = {1, 0, 1, 0, 0, 0, 3, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 3, 0, 0,
@@ -824,6 +948,34 @@ G2Precomp G2Affine::precompute() const {
     coeffs : coeffs,
   };
 };
+
+FQ12 G2Precomp::miller_loop(const G1Affine &g1) const {
+  FQ12 f = FQ12_ONE;
+  int idx = 0;
+
+  for (int j = 0; j < 64; j++) {
+    int i = ATE_LOOP_COUNT_NAF[j];
+    EllCoeffs c = coeffs[idx];
+    idx += 1;
+    f = f.square()
+        .mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+
+    if (i != 0) {
+        EllCoeffs c = coeffs[idx];
+        idx += 1;
+        f = f.mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+    }
+  }
+
+  EllCoeffs c = coeffs[idx];
+  idx += 1;
+  f = f.mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+
+  c = coeffs[idx];
+  f = f.mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+
+  return f;
+}
 
 // =====================================================================================================================
 // EIP 197 👆
