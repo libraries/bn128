@@ -438,25 +438,21 @@ constexpr FQ2 frobenius_coeffs_c2(uint64_t n) {
 }
 
 constexpr FQ2 frobenius_coeffs_c1_fq12(uint64_t n) {
-    switch (n % 12) {
-    case 0:
-       return FQ2_ONE;
-    case 1:
-      return FQ2(
-            h256("0x02f34d751a1f3a7c11bded5ef08a2087ca6b1d7387afb78aaf9ba69633144907"),
-            h256("0x10a75716b3899551dc2ff3a253dfc926d00f02a4565de15ba222ae234c492d72"));
-      case 2:
-        return FQ2(
-          h256("0x04290f65bad856e60e201271ad0d4418f0c5d61468b39769ca8d800500fa1bf2"),
-          FQ_ZERO);
-      case 3:
-        return FQ2(
-            h256("0x08116d8983a20d23659da72fca1009b50af7129ed4c96d9f365316184e46d97d"),
-            h256("0x26684515eff054a69b2220928caf0ae03d9f02878a73bf7fb1df4af7c39c1939"));
-        default:
-          assert(0);
-          return FQ2_ONE;
-    }
+  switch (n % 12) {
+  case 0:
+    return FQ2_ONE;
+  case 1:
+    return FQ2(h256("0x02f34d751a1f3a7c11bded5ef08a2087ca6b1d7387afb78aaf9ba69633144907"),
+               h256("0x10a75716b3899551dc2ff3a253dfc926d00f02a4565de15ba222ae234c492d72"));
+  case 2:
+    return FQ2(h256("0x04290f65bad856e60e201271ad0d4418f0c5d61468b39769ca8d800500fa1bf2"), FQ_ZERO);
+  case 3:
+    return FQ2(h256("0x08116d8983a20d23659da72fca1009b50af7129ed4c96d9f365316184e46d97d"),
+               h256("0x26684515eff054a69b2220928caf0ae03d9f02878a73bf7fb1df4af7c39c1939"));
+  default:
+    assert(0);
+    return FQ2_ONE;
+  }
 }
 
 struct FQ6 {
@@ -782,13 +778,13 @@ constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
 FQ12 FQ12::cyclotomic_pow(uint256 c) const {
   FQ12 r = FQ12_ONE;
   bool found_one = 0;
-  for (int i = 0; i < 256; i++) {
+  for (int i = 255; i > -1; i--) {
     if (found_one) {
       r = r.cyclotomic_squared();
     }
     if (c & (uint256{1} << i)) {
       found_one = 1;
-      r = r * *this;
+      r = *this * r;
     }
   }
   return r;
