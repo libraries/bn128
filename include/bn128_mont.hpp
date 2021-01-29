@@ -120,10 +120,6 @@ struct FQ {
   inline FQ square() const { return FQ{c0 : REDC(_mulmod(c0, c0, FIELD_MODULUS))}; }
 
   inline FQ mul_by_non_residue() const;
-
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 inline FQ operator+(const FQ &x, const FQ &y) { return FQ{c0 : _addmod(x.c0, y.c0, FIELD_MODULUS)}; }
@@ -146,12 +142,6 @@ constexpr FQ FQ_NON_RESIDUE = FQ(h256(HEX_FQ_NON_RESIDUE));
 constexpr FQ G1_COEFF_B = FQ(h256(HEX_G1_COEFF));
 
 inline FQ FQ::mul_by_non_residue() const { return *this * FQ_NON_RESIDUE; }
-
-#ifndef __riscv
-std::string FQ::str() const {
-  return "FQ(" + intx::hex(c0) + ")";
-}
-#endif
 
 struct G1Affine;
 struct G1;
@@ -325,9 +315,6 @@ struct FQ2 {
   FQ2 mul_by_non_residue() const;
 
   FQ2 frobenius_map(uint64_t power) const;
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 FQ2 operator+(const FQ2 &x, const FQ2 &y) {
@@ -403,11 +390,6 @@ FQ2 FQ2::frobenius_map(uint64_t power) const {
     };
   }
 }
-#ifndef __riscv
-std::string FQ2::str() const {
-  return "FQ2(" + c0.str() + ", " + c1.str() + ")";
-}
-#endif
 
 constexpr FQ2 FQ2_ZERO = FQ2(FQ_ZERO, FQ_ZERO);
 constexpr FQ2 FQ2_ONE = FQ2(FQ_ONE, FQ_ZERO);
@@ -436,9 +418,6 @@ struct FQ6 {
   FQ6 square() const;
 
   FQ6 mul_by_non_residue() const;
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 FQ6 operator+(const FQ6 &x, const FQ6 &y) {
@@ -514,11 +493,6 @@ FQ6 FQ6::mul_by_non_residue() const {
     c2 : c1,
   };
 }
-#ifndef __riscv
-std::string FQ6::str() const {
-  return "FQ6(" + c0.str() + ", " + c1.str() + ", " + c2.str() + ")";
-}
-#endif
 
 constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
 constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
@@ -537,9 +511,6 @@ struct FQ12 {
   FQ12 inv() const;
 
   FQ12 mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const;
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 FQ12 operator+(const FQ12 &x, const FQ12 &y) {
@@ -658,11 +629,6 @@ FQ12 FQ12::mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const {
       c1: FQ6(z3, z4, z5),
   };
 }
-#ifndef __riscv
-std::string FQ12::str() const {
-  return "FQ12(" + c0.str() + ", " + c1.str() + ")";
-}
-#endif
 
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
@@ -683,9 +649,6 @@ struct G2Affine {
   G2Affine neg() const;
 
   G2Affine mul_by_q() const;
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 struct G2 {
@@ -715,11 +678,6 @@ G2Affine G2Affine::neg() const {
   };
 }
 
-#ifndef __riscv
-std::string G2Affine::str() const {
-  return "G2Affine(" + x.str() + ", " + y.str() + ")";
-}
-#endif
 
 constexpr G2 G2_ZERO = G2{
   x : FQ2_ZERO,
@@ -848,9 +806,6 @@ struct EllCoeffs {
   FQ2 ell_0;
   FQ2 ell_vw;
   FQ2 ell_vv;
-#ifndef __riscv
-  std::string str() const;
-#endif
 };
 
 EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) {
@@ -897,15 +852,9 @@ EllCoeffs G2::doubling_step_for_flipped_miller_loop() {
   };
 }
 
-#ifndef __riscv
-std::string EllCoeffs::str() const {
-  return "EllCoeffs(" + ell_0.str() + ", " + ell_vw.str() + ", " + ell_vv.str() + ")";
-}
-#endif
-
 struct G2Precomp {
   G2Affine q;
-  EllCoeffs *coeffs;
+  EllCoeffs coeffs[102];
 
   FQ12 miller_loop(const G1Affine &g1) const;
 };
@@ -915,22 +864,26 @@ const int ATE_LOOP_COUNT_NAF[64] = {1, 0, 1, 0, 0, 0, 3, 0, 3, 0, 0, 0, 3, 0, 1,
                                     3, 0, 3, 0, 0, 1, 0, 0, 0, 3, 0, 0, 3, 0, 1, 0, 1, 0, 0, 0};
 
 G2Precomp G2Affine::precompute() const {
+  G2Precomp out = G2Precomp{
+    q : (*this),
+    coeffs : {},
+  };
+
   G2 r = (*this).into();
-  EllCoeffs coeffs[102];
 
   G2Affine q_neg = (*this).neg();
   int idx = 0;
   for (int j = 0; j < 64; j++) {
     int i = ATE_LOOP_COUNT_NAF[j];
-    coeffs[idx] = r.doubling_step_for_flipped_miller_loop();
+    out.coeffs[idx] = r.doubling_step_for_flipped_miller_loop();
     idx++;
 
     if (i == 1) {
-      coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(*this);
+      out.coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(*this);
       idx++;
     }
     if (i == 3) {
-      coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q_neg);
+      out.coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q_neg);
       idx++;
     }
   }
@@ -938,15 +891,12 @@ G2Precomp G2Affine::precompute() const {
   G2Affine q1 = (*this).mul_by_q();
   G2Affine q2 = q1.mul_by_q().neg();
 
-  coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q1);
+  out.coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q1);
   idx++;
-  coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q2);
+  out.coeffs[idx] = r.mixed_addition_step_for_flipped_miller_loop(q2);
   idx++;
 
-  return G2Precomp{
-    q : (*this),
-    coeffs : coeffs,
-  };
+  return out;
 };
 
 FQ12 G2Precomp::miller_loop(const G1Affine &g1) const {
@@ -979,6 +929,37 @@ FQ12 G2Precomp::miller_loop(const G1Affine &g1) const {
 
 // =====================================================================================================================
 // EIP 197 👆
+// =====================================================================================================================
+
+#ifndef __riscv
+std::string display(FQ x) {
+  return "FQ(" + intx::hex(x.c0) + ")";
+}
+
+std::string display(FQ2 x) {
+  return "FQ2(" + display(x.c0) + ", " + display(x.c1) + ")";
+}
+
+std::string display(FQ6 x) {
+  return "FQ6(" + display(x.c0) + ", " + display(x.c1) + ", " + display(x.c2) + ")";
+}
+
+std::string display(FQ12 x) {
+  return "FQ12(" + display(x.c0) + ", " + display(x.c1) + ")";
+}
+
+std::string display(G2Affine x) {
+  return "G2Affine(" + display(x.x) + ", " + display(x.y) + ")";
+}
+
+std::string display(EllCoeffs x) {
+  return "EllCoeffs(" + display(x.ell_0) + ", " + display(x.ell_vw) + ", " + display(x.ell_vv) + ")";
+}
+#endif
+
+
+// =====================================================================================================================
+// OPEN API 👇
 // =====================================================================================================================
 
 void alt_bn128_add(const uint256 p[2], const uint256 q[2], uint256 r[2]) {
