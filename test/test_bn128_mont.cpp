@@ -140,16 +140,16 @@ int test_fq2_inv() {
   return 0;
 }
 
-int test_fq2_square() {
+int test_fq2_squared() {
   FQ2 a = FQ2(FQ(h256("0x0020b52d9fe70d08c967a97deeb9eb186da14c608196f376d63ca9589ca5970f")),
               FQ(h256("0x2b782d1f7dda8678b0d017978b3067b74807a5d49d2a41739659c6600a8bf015")));
-  FQ2 b = a.square();
+  FQ2 b = a.squared();
   FQ2 c = a * a;
   if (b != c) {
     return 1;
   }
   FQ2 d = FQ2(10, 20);
-  FQ2 e = d.square();
+  FQ2 e = d.squared();
   FQ2 f = d * d;
   if (e != f) {
     return 1;
@@ -177,14 +177,14 @@ int test_fq6_inv() {
   return 0;
 }
 
-int test_fq6_square() {
+int test_fq6_squared() {
   FQ6 a = FQ6(FQ2(h256("0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed"),
                   h256("0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2")),
               FQ2(h256("0x12c85ea5db8c6deb4aab71808dcb408fe3d1e7690c43d37b4ce6cc0166fa7daa"),
                   h256("0x090689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122975b")),
               FQ2(h256("0x047d62b471a91cfa91fb08d4344792a0355cc0471784adb20e9a99bf11286133"),
                   h256("0x19c7a2f5e6eedf85ec5adff3e0c2028a52b78e15a2e081513a5e5c6309cf7cc2")));
-  FQ6 b = a.square();
+  FQ6 b = a.squared();
   FQ6 c = FQ6(FQ2(h256("0x2c1aa3c13cf206dd8e756e7a426504343c756ca4e891dd1a5b6124a4b95118ca"),
                   h256("0x006eaa3f0885d6c6e94bec92fcac3f66d591ed269a575b6acf66d2e42adb2181")),
               FQ2(h256("0x074720caa92f241f97477120e2a6e77ddf97f5c7333deb99559470dbb8bf8ca8"),
@@ -680,9 +680,9 @@ int test_alt_bn128_pairing() {
   FQ b0 = FQ(mont_encode(h256("0x2eca0c7238bf16e83e7a1e6c5d49540685ff51380f309842a98561558019fc02")));
   FQ b1 = FQ(mont_encode(h256("0x03d3260361bb8451de5ff5ecd17f010ff22f5c31cdf184e9020b06fa5997db84")));
   G2Affine a = G2Affine{x : FQ2(a00, a01), y : FQ2(a10, a11)};
-  G1Affine b = G1Affine{x: b0, y: b1};
+  G1Affine b = G1Affine{x : b0, y : b1};
   G2Precomp c = a.precompute();
-  FQ12 d = c.miller_loop(b);
+  FQ12 d = c.miller_loop(b).inv();
 
   printf("%s\n\n", display(d).c_str());
 
@@ -706,11 +706,11 @@ int main() {
   //   return 1;
   // if (test_fq2_inv())
   //   return 1;
-  // if (test_fq2_square())
+  // if (test_fq2_squared())
   //   return 1;
   // if (test_fq6_inv())
   //   return 1;
-  // if (test_fq6_square())
+  // if (test_fq6_squared())
   //   return 1;
   // if (test_g2_jacobian_affine_conv())
   //   return 1;

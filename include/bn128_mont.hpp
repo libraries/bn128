@@ -117,7 +117,7 @@ struct FQ {
 
   inline FQ pow(const uint256 &y) const { return FQ{c0 : _powmod(c0, y, FIELD_MODULUS)}; }
 
-  inline FQ square() const { return FQ{c0 : REDC(_mulmod(c0, c0, FIELD_MODULUS))}; }
+  inline FQ squared() const { return FQ{c0 : REDC(_mulmod(c0, c0, FIELD_MODULUS))}; }
 
   inline FQ mul_by_non_residue() const;
 };
@@ -189,19 +189,19 @@ G1Affine G1::affine() const {
     return G1Affine{x : x, y : y};
   } else {
     FQ zinv = z.inv();
-    FQ zinv_squared = zinv.square();
+    FQ zinv_squared = zinv.squared();
     return G1Affine{x : x * zinv_squared, y : y * (zinv_squared * zinv)};
   }
 }
 
 G1 G1::doubl2() const {
-  FQ a = x.square();
-  FQ b = y.square();
-  FQ c = b.square();
-  FQ d = (x + b).square() - a - c;
+  FQ a = x.squared();
+  FQ b = y.squared();
+  FQ c = b.squared();
+  FQ d = (x + b).squared() - a - c;
   d = d + d;
   FQ e = a + a + a;
-  FQ f = e.square();
+  FQ f = e.squared();
   FQ x3 = f - (d + d);
   FQ c8 = c + c;
   c8 = c8 + c8;
@@ -223,8 +223,8 @@ G1 operator+(const G1 &p, const G1 &q) {
   if (z2 == FQ_ZERO) {
     return p;
   }
-  FQ z1_squared = z1.square();
-  FQ z2_squared = z2.square();
+  FQ z1_squared = z1.squared();
+  FQ z2_squared = z2.squared();
   FQ u1 = x1 * z2_squared;
   FQ u2 = x2 * z1_squared;
   FQ z1_cubed = z1 * z1_squared;
@@ -236,16 +236,16 @@ G1 operator+(const G1 &p, const G1 &q) {
   }
   FQ h = u2 - u1;
   FQ s2_minus_s1 = s2 - s1;
-  FQ i = (h + h).square();
+  FQ i = (h + h).squared();
   FQ j = h * i;
   FQ r = s2_minus_s1 + s2_minus_s1;
   FQ v = u1 * i;
   FQ s1_j = s1 * j;
-  FQ x3 = r.square() - j - (v + v);
+  FQ x3 = r.squared() - j - (v + v);
   return G1{
     x : x3,
     y : r * (v - x3) - (s1_j + s1_j),
-    z : ((z1 + z2).square() - z1_squared - z2_squared) * h,
+    z : ((z1 + z2).squared() - z1_squared - z2_squared) * h,
   };
 }
 
@@ -306,7 +306,7 @@ struct FQ2 {
 
   FQ2 inv() const;
 
-  FQ2 square() const;
+  FQ2 squared() const;
 
   FQ2 scale(FQ c) const;
 
@@ -351,14 +351,14 @@ bool operator==(const FQ2 &x, const FQ2 &y) { return x.c0 == y.c0 && x.c1 == y.c
 bool operator!=(const FQ2 &x, const FQ2 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
 
 FQ2 FQ2::inv() const {
-  FQ t = (c0.square() - c1.square().mul_by_non_residue()).inv();
+  FQ t = (c0.squared() - c1.squared().mul_by_non_residue()).inv();
   return FQ2{
     c0 : c0 * t,
     c1 : -(c1 * t),
   };
 }
 
-FQ2 FQ2::square() const {
+FQ2 FQ2::squared() const {
   FQ a = c0 * c1;
   return FQ2{
     c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - a - a.mul_by_non_residue(),
@@ -400,6 +400,43 @@ constexpr FQ2 TWIST_MUL_BY_Q_Y = FQ2(h256(HEX_TWIST_MUL_BY_Q_Y_0), h256(HEX_TWIS
 
 FQ2 FQ2::mul_by_non_residue() const { return *this * FQ2_NON_RESIDUE; }
 
+constexpr FQ2 frobenius_coeffs_c1(uint64_t n) {
+
+  switch (n % 6) {
+  case 0:
+    return FQ2_ONE;
+  case 1:
+    return FQ2(h256("0x1956bcd8118214ec7a007127242e0991347f91c8a9aa6454b5773b104563ab30"),
+               h256("0x26694fbb4e82ebc3b6e713cdfae0ca3aaa1c7b6d89f891416e849f1ea0aa4757"));
+  case 2:
+    return FQ2(h256("0x2682e617020217e06001b4b8b615564a7dce557cdb5e56b93350c88e13e80b9c"), FQ_ZERO);
+  case 3:
+    return FQ2(h256("0x20273e77e3439f8219eeaf64e248c7f4b311782a4aa662b2c9af22f716ad6bad"),
+               h256("0x0a46036d4417cc5569e6188b446c84673933d5817ba76b4cacc02860f7ce93ac"));
+  default:
+    assert(0);
+    return FQ2_ONE;
+  }
+}
+
+constexpr FQ2 frobenius_coeffs_c2(uint64_t n) {
+  switch (n % 6) {
+  case 0:
+    return FQ2_ONE;
+  case 1:
+    return FQ2(h256("0x15df9cddbb9fd3ec9c941f314b3e2399a5bb2bd3273411fb7361d77f843abe92"),
+               h256("0x24830a9d3171f0fd37bc870a0c7dd2b962cb29a5a4445b605dddfd154bd8c949"));
+  case 2:
+    return FQ2(h256("0x2c3b3f0d26594943aa303344d4741444a6bb947cffbe332371930c11d782e155"), FQ_ZERO);
+  case 3:
+    return FQ2(h256("0x06b03d4d3476ec58d858f5d00e9bd47abfd62df528fdeadf448a93a57b6762df"),
+               h256("0x170c812b84dda0b2b533eee05adeaef1a1a54e7a56f4299f2b19daf4bcc936d1"));
+  default:
+    assert(0);
+    return FQ2_ONE;
+  }
+}
+
 struct FQ6 {
   FQ2 c0;
   FQ2 c1;
@@ -415,9 +452,13 @@ struct FQ6 {
 
   FQ6 inv() const;
 
-  FQ6 square() const;
+  FQ6 scale(FQ2 by) const;
+
+  FQ6 squared() const;
 
   FQ6 mul_by_non_residue() const;
+
+  FQ6 frobenius_map(uint64_t power) const;
 };
 
 FQ6 operator+(const FQ6 &x, const FQ6 &y) {
@@ -460,9 +501,9 @@ bool operator==(const FQ6 &x, const FQ6 &y) { return x.c0 == y.c0 && x.c1 == y.c
 bool operator!=(const FQ6 &x, const FQ6 &y) { return x.c0 != y.c0 || x.c1 != y.c1 || x.c2 != y.c2; }
 
 FQ6 FQ6::inv() const {
-  FQ2 a = c0.square() - c1 * c2.mul_by_non_residue();
-  FQ2 b = c2.square().mul_by_non_residue() - c0 * c1;
-  FQ2 c = c1.square() - c0 * c2;
+  FQ2 a = c0.squared() - c1 * c2.mul_by_non_residue();
+  FQ2 b = c2.squared().mul_by_non_residue() - c0 * c1;
+  FQ2 c = c1.squared() - c0 * c2;
   FQ2 t = ((c2 * b + c1 * c).mul_by_non_residue() + c0 * a).inv();
   return FQ6{
     c0 : t * a,
@@ -471,14 +512,14 @@ FQ6 FQ6::inv() const {
   };
 }
 
-FQ6 FQ6::square() const {
-  FQ2 s0 = c0.square();
+FQ6 FQ6::squared() const {
+  FQ2 s0 = c0.squared();
   FQ2 ab = c0 * c1;
   FQ2 s1 = ab + ab;
-  FQ2 s2 = (c0 - c1 + c2).square();
+  FQ2 s2 = (c0 - c1 + c2).squared();
   FQ2 bc = c1 * c2;
   FQ2 s3 = bc + bc;
-  FQ2 s4 = c2.square();
+  FQ2 s4 = c2.squared();
   return FQ6{
     c0 : s0 + s3.mul_by_non_residue(),
     c1 : s1 + s4.mul_by_non_residue(),
@@ -494,6 +535,22 @@ FQ6 FQ6::mul_by_non_residue() const {
   };
 }
 
+FQ6 FQ6::frobenius_map(uint64_t power) const {
+  return FQ6{
+    c0 : c0.frobenius_map(power),
+    c1 : c1.frobenius_map(power) * frobenius_coeffs_c1(power),
+    c2 : c2.frobenius_map(power) * frobenius_coeffs_c2(power),
+  };
+}
+
+FQ6 FQ6::scale(FQ2 by) const {
+  return FQ6{
+    c0 : c0 * by,
+    c1 : c1 * by,
+    c2 : c2 * by,
+  };
+}
+
 constexpr FQ6 FQ6_ZERO = FQ6(FQ2_ZERO, FQ2_ZERO, FQ2_ZERO);
 constexpr FQ6 FQ6_ONE = FQ6(FQ2_ONE, FQ2_ZERO, FQ2_ZERO);
 
@@ -506,11 +563,27 @@ struct FQ12 {
     c1 = y;
   }
 
-  FQ12 square() const;
+  FQ12 squared() const;
 
   FQ12 inv() const;
 
   FQ12 mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const;
+
+  FQ12 cyclotomic_squared() const;
+
+  FQ12 cyclotomic_pow(uint256 c) const;
+
+  FQ12 unitary_inverse() const;
+
+  FQ12 exp_by_neg_z() const;
+
+  FQ12 frobenius_map(uint64_t power) const;
+
+  FQ12 final_exponentiation_first_chunk() const;
+
+  FQ12 final_exponentiation_last_chunk() const;
+
+  FQ12 final_exponentiation() const;
 };
 
 FQ12 operator+(const FQ12 &x, const FQ12 &y) {
@@ -546,7 +619,7 @@ FQ12 operator*(const FQ12 &x, const FQ12 &y) {
 bool operator==(const FQ12 &x, const FQ12 &y) { return x.c0 == y.c0 && x.c1 == y.c1; }
 bool operator!=(const FQ12 &x, const FQ12 &y) { return x.c0 != y.c0 || x.c1 != y.c1; }
 
-FQ12 FQ12::square() const {
+FQ12 FQ12::squared() const {
   FQ6 ab = c0 * c1;
   return FQ12{
     c0 : (c1.mul_by_non_residue() + c0) * (c0 + c1) - ab - ab.mul_by_non_residue(),
@@ -555,7 +628,7 @@ FQ12 FQ12::square() const {
 }
 
 FQ12 FQ12::inv() const {
-  FQ6 t = (c0.square() - c1.square().mul_by_non_residue()).inv();
+  FQ6 t = (c0.squared() - c1.squared().mul_by_non_residue()).inv();
   return FQ12{
     c0 : c0 * t,
     c1 : -(c1 * t),
@@ -624,14 +697,136 @@ FQ12 FQ12::mul_by_024(FQ2 ell_0, FQ2 ell_vw, FQ2 ell_vv) const {
   t3 = s0 * t0 - s1;
   z5 = t3;
 
-  return FQ12 {
-      c0: FQ6(z0, z1, z2),
-      c1: FQ6(z3, z4, z5),
+  return FQ12{
+    c0 : FQ6(z0, z1, z2),
+    c1 : FQ6(z3, z4, z5),
+  };
+}
+
+FQ12 FQ12::cyclotomic_squared() const {
+  FQ2 z0 = c0.c0;
+  FQ2 z4 = c0.c1;
+  FQ2 z3 = c0.c2;
+  FQ2 z2 = c1.c0;
+  FQ2 z1 = c1.c1;
+  FQ2 z5 = c1.c2;
+
+  FQ2 tmp = z0 * z1;
+  FQ2 t0 = (z0 + z1) * (z1.mul_by_non_residue() + z0) - tmp - tmp.mul_by_non_residue();
+  FQ2 t1 = tmp + tmp;
+
+  tmp = z2 * z3;
+  FQ2 t2 = (z2 + z3) * (z3.mul_by_non_residue() + z2) - tmp - tmp.mul_by_non_residue();
+  FQ2 t3 = tmp + tmp;
+
+  tmp = z4 * z5;
+  FQ2 t4 = (z4 + z5) * (z5.mul_by_non_residue() + z4) - tmp - tmp.mul_by_non_residue();
+  FQ2 t5 = tmp + tmp;
+
+  z0 = t0 - z0;
+  z0 = z0 + z0;
+  z0 = z0 + t0;
+
+  z1 = t1 + z1;
+  z1 = z1 + z1;
+  z1 = z1 + t1;
+
+  tmp = t5.mul_by_non_residue();
+  z2 = tmp + z2;
+  z2 = z2 + z2;
+  z2 = z2 + tmp;
+
+  z3 = t4 - z3;
+  z3 = z3 + z3;
+  z3 = z3 + t4;
+
+  z4 = t2 - z4;
+  z4 = z4 + z4;
+  z4 = z4 + t2;
+
+  z5 = t3 + z5;
+  z5 = z5 + z5;
+  z5 = z5 + t3;
+
+  return FQ12{
+    c0 : FQ6(z0, z4, z3),
+    c1 : FQ6(z2, z1, z5),
   };
 }
 
 constexpr FQ12 FQ12_ZERO = FQ12(FQ6_ZERO, FQ6_ZERO);
 constexpr FQ12 FQ12_ONE = FQ12(FQ6_ONE, FQ6_ZERO);
+
+FQ12 FQ12::cyclotomic_pow(uint256 c) const {
+  FQ12 r = FQ12_ONE;
+  bool found_one = 0;
+  for (int i = 0; i < 256; i++) {
+    if (found_one) {
+      r = r.cyclotomic_squared();
+    }
+    if (c & (uint256{1} << i)) {
+      found_one = 1;
+      r = r * *this;
+    }
+  }
+  return r;
+}
+
+FQ12 FQ12::unitary_inverse() const { return FQ12(c0, -c1); }
+
+FQ12 FQ12::exp_by_neg_z() const { return (*this).cyclotomic_pow(4965661367192848881).unitary_inverse(); }
+
+FQ12 FQ12::frobenius_map(uint64_t power) const {
+  return FQ12{
+    c0 : c0.frobenius_map(power),
+    c1 : c1.frobenius_map(power).scale(frobenius_coeffs_c1(power)),
+  };
+}
+
+FQ12 FQ12::final_exponentiation_first_chunk() const {
+  FQ12 b = (*this).inv();
+  FQ12 a = (*this).unitary_inverse();
+  FQ12 c = a * b;
+  FQ12 d = c.frobenius_map(2);
+
+  return d;
+}
+
+FQ12 FQ12::final_exponentiation_last_chunk() const {
+  FQ12 a = (*this).exp_by_neg_z();
+  FQ12 b = a.cyclotomic_squared();
+  FQ12 c = b.cyclotomic_squared();
+  FQ12 d = c * b;
+
+  FQ12 e = d.exp_by_neg_z();
+  FQ12 f = e.cyclotomic_squared();
+  FQ12 g = f.exp_by_neg_z();
+  FQ12 h = d.unitary_inverse();
+  FQ12 i = g.unitary_inverse();
+
+  FQ12 j = i * e;
+  FQ12 k = j * h;
+  FQ12 l = k * b;
+  FQ12 m = k * e;
+  FQ12 n = (*this) * m;
+
+  FQ12 o = l.frobenius_map(1);
+  FQ12 p = o * n;
+
+  FQ12 q = k.frobenius_map(2);
+  FQ12 r = q * p;
+
+  FQ12 s = (*this).unitary_inverse();
+  FQ12 t = s * l;
+  FQ12 u = t.frobenius_map(3);
+  FQ12 v = u * r;
+
+  return v;
+}
+
+FQ12 FQ12::final_exponentiation() const {
+  return (*this).final_exponentiation_first_chunk().final_exponentiation_last_chunk();
+}
 
 struct G2Affine;
 struct G2;
@@ -678,7 +873,6 @@ G2Affine G2Affine::neg() const {
   };
 }
 
-
 constexpr G2 G2_ZERO = G2{
   x : FQ2_ZERO,
   y : FQ2_ONE,
@@ -705,7 +899,7 @@ G2Affine G2::affine() const {
     return G2Affine{x : x, y : y};
   } else {
     FQ2 zinv = z.inv();
-    FQ2 zinv_squared = zinv.square();
+    FQ2 zinv_squared = zinv.squared();
     return G2Affine{x : x * zinv_squared, y : y * (zinv_squared * zinv)};
   }
 }
@@ -730,13 +924,13 @@ G2 G2::neg() const {
 }
 
 G2 G2::doubl2() const {
-  FQ2 a = x.square();
-  FQ2 b = y.square();
-  FQ2 c = b.square();
-  FQ2 d = (x + b).square() - a - c;
+  FQ2 a = x.squared();
+  FQ2 b = y.squared();
+  FQ2 c = b.squared();
+  FQ2 d = (x + b).squared() - a - c;
   d = d + d;
   FQ2 e = a + a + a;
-  FQ2 f = e.square();
+  FQ2 f = e.squared();
   FQ2 x3 = f - (d + d);
   FQ2 c8 = c + c;
   c8 = c8 + c8;
@@ -761,8 +955,8 @@ G2 operator+(const G2 &p, const G2 &q) {
   if (z2 == FQ2_ZERO) {
     return p;
   }
-  FQ2 z1_squared = z1.square();
-  FQ2 z2_squared = z2.square();
+  FQ2 z1_squared = z1.squared();
+  FQ2 z2_squared = z2.squared();
   FQ2 u1 = x1 * z2_squared;
   FQ2 u2 = x2 * z1_squared;
   FQ2 z1_cubed = z1 * z1_squared;
@@ -774,16 +968,16 @@ G2 operator+(const G2 &p, const G2 &q) {
   }
   FQ2 h = u2 - u1;
   FQ2 s2_minus_s1 = s2 - s1;
-  FQ2 i = (h + h).square();
+  FQ2 i = (h + h).squared();
   FQ2 j = h * i;
   FQ2 r = s2_minus_s1 + s2_minus_s1;
   FQ2 v = u1 * i;
   FQ2 s1_j = s1 * j;
-  FQ2 x3 = r.square() - j - (v + v);
+  FQ2 x3 = r.squared() - j - (v + v);
   return G2{
     x : x3,
     y : r * (v - x3) - (s1_j + s1_j),
-    z : ((z1 + z2).square() - z1_squared - z2_squared) * h,
+    z : ((z1 + z2).squared() - z1_squared - z2_squared) * h,
   };
 }
 
@@ -811,8 +1005,8 @@ struct EllCoeffs {
 EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) {
   FQ2 d = x - z * base.x;
   FQ2 e = y - z * base.y;
-  FQ2 f = d.square();
-  FQ2 g = e.square();
+  FQ2 f = d.squared();
+  FQ2 g = e.squared();
   FQ2 h = d * f;
   FQ2 i = x * f;
   FQ2 j = z * g + h - (i + i);
@@ -830,19 +1024,19 @@ EllCoeffs G2::mixed_addition_step_for_flipped_miller_loop(const G2Affine &base) 
 
 EllCoeffs G2::doubling_step_for_flipped_miller_loop() {
   FQ2 a = (x * y).scale(FQ_TWO_INV);
-  FQ2 b = y.square();
-  FQ2 c = z.square();
+  FQ2 b = y.squared();
+  FQ2 c = z.squared();
   FQ2 d = c + c + c;
   FQ2 e = G2_COEFF_B * d;
   FQ2 f = e + e + e;
   FQ2 g = (b + f).scale(FQ_TWO_INV);
-  FQ2 h = (y + z).square() - (b + c);
+  FQ2 h = (y + z).squared() - (b + c);
   FQ2 i = e - b;
-  FQ2 j = x.square();
-  FQ2 e_sq = e.square();
+  FQ2 j = x.squared();
+  FQ2 e_sq = e.squared();
 
   x = a * (b - f);
-  y = g.square() - (e_sq + e_sq + e_sq);
+  y = g.squared() - (e_sq + e_sq + e_sq);
   z = b * h;
 
   return EllCoeffs{
@@ -907,13 +1101,12 @@ FQ12 G2Precomp::miller_loop(const G1Affine &g1) const {
     int i = ATE_LOOP_COUNT_NAF[j];
     EllCoeffs c = coeffs[idx];
     idx += 1;
-    f = f.square()
-        .mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+    f = f.squared().mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
 
     if (i != 0) {
-        EllCoeffs c = coeffs[idx];
-        idx += 1;
-        f = f.mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
+      EllCoeffs c = coeffs[idx];
+      idx += 1;
+      f = f.mul_by_024(c.ell_0, c.ell_vw.scale(g1.y), c.ell_vv.scale(g1.x));
     }
   }
 
@@ -932,31 +1125,20 @@ FQ12 G2Precomp::miller_loop(const G1Affine &g1) const {
 // =====================================================================================================================
 
 #ifndef __riscv
-std::string display(FQ x) {
-  return "FQ(" + intx::hex(x.c0) + ")";
-}
+std::string display(FQ x) { return "FQ(" + intx::hex(x.c0) + ")"; }
 
-std::string display(FQ2 x) {
-  return "FQ2(" + display(x.c0) + ", " + display(x.c1) + ")";
-}
+std::string display(FQ2 x) { return "FQ2(" + display(x.c0) + ", " + display(x.c1) + ")"; }
 
-std::string display(FQ6 x) {
-  return "FQ6(" + display(x.c0) + ", " + display(x.c1) + ", " + display(x.c2) + ")";
-}
+std::string display(FQ6 x) { return "FQ6(" + display(x.c0) + ", " + display(x.c1) + ", " + display(x.c2) + ")"; }
 
-std::string display(FQ12 x) {
-  return "FQ12(" + display(x.c0) + ", " + display(x.c1) + ")";
-}
+std::string display(FQ12 x) { return "FQ12(" + display(x.c0) + ", " + display(x.c1) + ")"; }
 
-std::string display(G2Affine x) {
-  return "G2Affine(" + display(x.x) + ", " + display(x.y) + ")";
-}
+std::string display(G2Affine x) { return "G2Affine(" + display(x.x) + ", " + display(x.y) + ")"; }
 
 std::string display(EllCoeffs x) {
   return "EllCoeffs(" + display(x.ell_0) + ", " + display(x.ell_vw) + ", " + display(x.ell_vv) + ")";
 }
 #endif
-
 
 // =====================================================================================================================
 // OPEN API 👇
