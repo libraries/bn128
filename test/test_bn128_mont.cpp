@@ -682,7 +682,7 @@ int test_alt_bn128_pairing() {
   G2Affine a = G2Affine{x : FQ2(a00, a01), y : FQ2(a10, a11)};
   G1Affine b = G1Affine{x : b0, y : b1};
   G2Precomp c = a.precompute();
-  FQ12 d = c.miller_loop(b).inv();
+  FQ12 d = c.miller_loop(b).final_exponentiation_first_chunk();
 
   printf("%s\n\n", display(d).c_str());
 

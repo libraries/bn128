@@ -437,6 +437,28 @@ constexpr FQ2 frobenius_coeffs_c2(uint64_t n) {
   }
 }
 
+constexpr FQ2 frobenius_coeffs_c1_fq12(uint64_t n) {
+    switch (n % 12) {
+    case 0:
+       return FQ2_ONE;
+    case 1:
+      return FQ2(
+            h256("0x02f34d751a1f3a7c11bded5ef08a2087ca6b1d7387afb78aaf9ba69633144907"),
+            h256("0x10a75716b3899551dc2ff3a253dfc926d00f02a4565de15ba222ae234c492d72"));
+      case 2:
+        return FQ2(
+          h256("0x04290f65bad856e60e201271ad0d4418f0c5d61468b39769ca8d800500fa1bf2"),
+          FQ_ZERO);
+      case 3:
+        return FQ2(
+            h256("0x08116d8983a20d23659da72fca1009b50af7129ed4c96d9f365316184e46d97d"),
+            h256("0x26684515eff054a69b2220928caf0ae03d9f02878a73bf7fb1df4af7c39c1939"));
+        default:
+          assert(0);
+          return FQ2_ONE;
+    }
+}
+
 struct FQ6 {
   FQ2 c0;
   FQ2 c1;
@@ -779,7 +801,7 @@ FQ12 FQ12::exp_by_neg_z() const { return (*this).cyclotomic_pow(4965661367192848
 FQ12 FQ12::frobenius_map(uint64_t power) const {
   return FQ12{
     c0 : c0.frobenius_map(power),
-    c1 : c1.frobenius_map(power).scale(frobenius_coeffs_c1(power)),
+    c1 : c1.frobenius_map(power).scale(frobenius_coeffs_c1_fq12(power)),
   };
 }
 
@@ -789,7 +811,7 @@ FQ12 FQ12::final_exponentiation_first_chunk() const {
   FQ12 c = a * b;
   FQ12 d = c.frobenius_map(2);
 
-  return d;
+  return c * d;
 }
 
 FQ12 FQ12::final_exponentiation_last_chunk() const {
